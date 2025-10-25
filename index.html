@@ -55,14 +55,21 @@
         .api-config select {
             padding: 8px;
             border-radius: 4px;
-            border: none;
-            background: rgba(255, 255, 255, 0.1);
-            color: #e0e0e0;
+            border: 1px solid #ffd700;
+            background: #2a2a4e;
+            color: #ffffff;
+            font-weight: bold;
+            cursor: pointer;
         }
 
         .api-config select option {
             background: #1a1a2e;
-            color: #e0e0e0;
+            color: #ffffff;
+            padding: 10px;
+        }
+
+        .api-config select:hover {
+            background: #3a3a5e;
         }
 
         .api-config input {
@@ -263,10 +270,14 @@
             border-left: 3px solid #8b4513;
         }
 
-        .message.player {
+        .message.player.ingame {
             background: rgba(25, 135, 84, 0.3);
-            align-self: flex-end;
             border-right: 3px solid #198754;
+        }
+
+        .message.player.outgame {
+            background: rgba(13, 110, 253, 0.3);
+            border-right: 3px solid #0d6efd;
         }
 
         .message.system {
@@ -289,6 +300,44 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 8px;
             margin-top: 10px;
+        }
+
+        .chat-mode-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #999;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .mode-btn.active {
+            background: #ffd700;
+            color: #1a1a2e;
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.2);
+            color: #e0e0e0;
+        }
+
+        .input-label {
+            font-size: 12px;
+            color: #ffd700;
+            margin-bottom: 5px;
+            font-weight: bold;
         }
 
         .input-group {
@@ -709,8 +758,17 @@
                 </div>
             </div>
             <div class="input-area">
+                <div class="chat-mode-toggle">
+                    <button class="mode-btn active" id="inGameBtn" onclick="setChatMode('ingame')">
+                        🎭 In-Game (Character Actions)
+                    </button>
+                    <button class="mode-btn" id="outGameBtn" onclick="setChatMode('outgame')">
+                        💬 Out-of-Game (Ask DM)
+                    </button>
+                </div>
+                <div class="input-label" id="inputLabel">Speaking/Acting as your character</div>
                 <div class="input-group">
-                    <input type="text" id="playerInput" placeholder="Describe your action or start your adventure..." onkeypress="handleKeyPress(event)">
+                    <input type="text" id="playerInput" placeholder="I draw my sword and approach cautiously..." onkeypress="handleKeyPress(event)">
                     <button class="btn" onclick="sendMessage()" id="sendBtn">Send</button>
                 </div>
             </div>
@@ -822,8 +880,30 @@
                 ollamaModel: 'llama3.1:8b'
             },
             initiativeOrder: [],
-            currentTurn: 0
+            currentTurn: 0,
+            chatMode: 'ingame' // 'ingame' or 'outgame'
         };
+
+        // Chat Mode Management
+        function setChatMode(mode) {
+            gameState.chatMode = mode;
+            const inGameBtn = document.getElementById('inGameBtn');
+            const outGameBtn = document.getElementById('outGameBtn');
+            const inputLabel = document.getElementById('inputLabel');
+            const playerInput = document.getElementById('playerInput');
+            
+            if (mode === 'ingame') {
+                inGameBtn.classList.add('active');
+                outGameBtn.classList.remove('active');
+                inputLabel.textContent = '🎭 Speaking/Acting as your character';
+                playerInput.placeholder = 'I draw my sword and approach cautiously...';
+            } else {
+                outGameBtn.classList.add('active');
+                inGameBtn.classList.remove('active');
+                inputLabel.textContent = '💬 Out-of-game question or comment for the DM';
+                playerInput.placeholder = 'Can you remind me what the innkeeper said? / What are my options here?';
+            }
+        }
 
         // Load saved state on startup
         window.onload = function() {
@@ -1012,6 +1092,8 @@
         }
 
         async function callAI(userMessage) {
+            const isInGame = gameState.chatMode === 'ingame';
+            
             const systemPrompt = `You are an expert Dungeon Master running a solo D&D 5e campaign.
 
 Player Character: ${getCharacterSummary()}
@@ -1021,20 +1103,41 @@ Current Adventure State:
 - Active Quests: ${gameState.adventureState.quests.join(', ') || 'None'}
 - Known NPCs: ${gameState.adventureState.npcs.map(n => n.name).join(', ') || 'None'}
 
-Your role:
-1. Create engaging, descriptive, immersive narration
-2. Follow D&D 5e rules accurately
-3. When actions require rolls, tell the player what to roll and the DC
-4. Respond to player actions with appropriate consequences
-5. Create interesting encounters, NPCs, and story moments
-6. Keep the story moving forward
-7. Be concise but vivid (2-4 paragraphs typically)
-8. Track important story elements and update quest status when relevant
+MESSAGE TYPE: ${isInGame ? 'IN-GAME ACTION/DIALOGUE' : 'OUT-OF-GAME QUESTION'}
 
-Important: When you introduce new quests or meet important NPCs, mention them clearly so they can be tracked. Format key information like:
+${isInGame ? `
+Your role for IN-GAME messages:
+1. Treat the player's message as something their character is saying or doing
+2. Create engaging, descriptive, immersive narration in response
+3. Follow D&D 5e rules accurately
+4. When actions require rolls, tell the player what to roll and the DC
+5. Respond to player actions with appropriate consequences
+6. Create interesting encounters, NPCs, and story moments
+7. Keep the story moving forward
+8. Be concise but vivid (2-4 paragraphs typically)
+9. Track important story elements
+
+When you introduce new quests or meet important NPCs, mention them clearly:
 - QUEST: [Quest description]
 - NPC: [Name] - [Brief description]
 - CHAPTER: [Chapter name] (when major story beats occur)
+` : `
+Your role for OUT-OF-GAME questions:
+1. This is the player asking YOU (the DM) a question, NOT their character speaking
+2. Answer helpfully and break the fourth wall
+3. Provide clarification, reminders, or meta-game guidance
+4. Explain rules, options, or story details
+5. Be friendly and helpful
+6. Keep it concise (1-2 paragraphs)
+7. Don't advance the story - just answer their question
+8. After answering, you can ask if they're ready to continue in-game
+
+Examples of out-of-game questions:
+- "What did the merchant say again?"
+- "What are my options here?"
+- "Can you remind me of the quest?"
+- "How does stealth work in this situation?"
+`}
 
 The adventure should be challenging, fun, and responsive to player choices.`;
 
@@ -1192,8 +1295,11 @@ The adventure should be challenging, fun, and responsive to player choices.`;
         function addPlayerMessage(text) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = 'message player';
-            messageDiv.innerHTML = `<div class="message-sender">You</div><div class="message-content">${escapeHtml(text)}</div>`;
+            const mode = gameState.chatMode;
+            const modeLabel = mode === 'ingame' ? '🎭 You' : '💬 You (OOC)';
+            
+            messageDiv.className = `message player ${mode}`;
+            messageDiv.innerHTML = `<div class="message-sender">${modeLabel}</div><div class="message-content">${escapeHtml(text)}</div>`;
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
