@@ -629,7 +629,7 @@
                 </select>
                 <input type="password" id="apiKey" placeholder="API key (leave empty for Ollama)">
                 <input type="text" id="ollamaUrl" placeholder="Ollama URL" value="http://localhost:11434" style="display:none;">
-                <input type="text" id="ollamaModel" placeholder="Model name" value="llama3.1:8b" style="display:none;">
+                <input type="text" id="ollamaModel" placeholder="Model name" value="llama3.1" style="display:none;">
                 <button class="btn btn-sm" onclick="saveApiConfig()">Save</button>
                 <div class="status-indicator">
                     <div class="status-dot" id="statusDot"></div>
@@ -777,6 +777,19 @@
         <div class="right-panel">
             <div class="panel dice-roller">
                 <h2>🎲 Dice Roller</h2>
+                
+                <h3 style="font-size: 12px; margin: 10px 0 5px 0;">Quick Rolls (with modifiers)</h3>
+                <div class="dice-buttons">
+                    <button class="dice-btn" onclick="quickRoll('strength')" title="STR Check/Save">STR</button>
+                    <button class="dice-btn" onclick="quickRoll('dexterity')" title="DEX Check/Save">DEX</button>
+                    <button class="dice-btn" onclick="quickRoll('constitution')" title="CON Check/Save">CON</button>
+                    <button class="dice-btn" onclick="quickRoll('intelligence')" title="INT Check/Save">INT</button>
+                    <button class="dice-btn" onclick="quickRoll('wisdom')" title="WIS Check/Save">WIS</button>
+                    <button class="dice-btn" onclick="quickRoll('charisma')" title="CHA Check/Save">CHA</button>
+                    <button class="dice-btn" onclick="quickRoll('initiative')" title="Initiative Roll">INIT</button>
+                </div>
+                
+                <h3 style="font-size: 12px; margin: 10px 0 5px 0;">Basic Dice</h3>
                 <div class="dice-buttons">
                     <button class="dice-btn" onclick="rollDice(4)">d4</button>
                     <button class="dice-btn" onclick="rollDice(6)">d6</button>
@@ -877,11 +890,12 @@
                 provider: 'claude',
                 apiKey: '',
                 ollamaUrl: 'http://localhost:11434',
-                ollamaModel: 'llama3.1:8b'
+                ollamaModel: 'llama3.1'
             },
             initiativeOrder: [],
             currentTurn: 0,
-            chatMode: 'ingame' // 'ingame' or 'outgame'
+            chatMode: 'ingame', // 'ingame' or 'outgame'
+            lastRollType: null // Tracks what kind of roll the DM asked for
         };
 
         // Chat Mode Management
@@ -1045,6 +1059,100 @@
             return `${name}, Level ${level} ${race} ${charClass}. HP: ${hp}, AC: ${ac}. STR ${document.getElementById('str').value}, DEX ${document.getElementById('dex').value}, CON ${document.getElementById('con').value}, INT ${document.getElementById('int').value}, WIS ${document.getElementById('wis').value}, CHA ${document.getElementById('cha').value}.`;
         }
 
+        function getAbilityModifier(score) {
+            return Math.floor((parseInt(score) - 10) / 2);
+        }
+
+        function getModifiers() {
+            return {
+                str: getAbilityModifier(document.getElementById('str').value),
+                dex: getAbilityModifier(document.getElementById('dex').value),
+                con: getAbilityModifier(document.getElementById('con').value),
+                int: getAbilityModifier(document.getElementById('int').value),
+                wis: getAbilityModifier(document.getElementById('wis').value),
+                cha: getAbilityModifier(document.getElementById('cha').value)
+            };
+        }
+
+        function getProficiencyBonus() {
+            const level = parseInt(document.getElementById('charLevel').value) || 1;
+            return Math.ceil(level / 4) + 1; // D&D 5e proficiency bonus
+        }
+
+        function detectRollType(message) {
+            // Detect what type of roll is needed from DM's message
+            const rollPatterns = {
+                strength: /strength|athletics|str\s+save|str\s+check/i,
+                dexterity: /dexterity|acrobatics|sleight of hand|stealth|dex\s+save|dex\s+check/i,
+                constitution: /constitution|con\s+save|con\s+check|endurance/i,
+                intelligence: /intelligence|arcana|history|investigation|nature|religion|int\s+save|int\s+check/i,
+                wisdom: /wisdom|animal handling|insight|medicine|perception|survival|wis\s+save|wis\s+check/i,
+                charisma: /charisma|deception|intimidation|performance|persuasion|cha\s+save|cha\s+check/i,
+                initiative: /initiative|roll\s+initiative/i,
+                attack: /attack|hit|strike/i
+            };
+
+            for (const [type, pattern] of Object.entries(rollPatterns)) {
+                if (pattern.test(message)) {
+                    return type;
+                }
+            }
+            return null;
+        }
+
+        function applyModifier(roll, rollType) {
+            const mods = getModifiers();
+            const profBonus = getProficiencyBonus();
+            
+            let modifier = 0;
+            let modifierText = '';
+            
+            switch(rollType) {
+                case 'strength':
+                    modifier = mods.str;
+                    modifierText = `STR ${modifier >= 0 ? '+' : ''}${modifier}`;
+                    break;
+                case 'dexterity':
+                    modifier = mods.dex;
+                    modifierText = `DEX ${modifier >= 0 ? '+' : ''}${modifier}`;
+                    break;
+                case 'constitution':
+                    modifier = mods.con;
+                    modifierText = `CON ${modifier >= 0 ? '+' : ''}${modifier}`;
+                    break;
+                case 'intelligence':
+                    modifier = mods.int;
+                    modifierText = `INT ${modifier >= 0 ? '+' : ''}${modifier}`;
+                    break;
+                case 'wisdom':
+                    modifier = mods.wis;
+                    modifierText = `WIS ${modifier >= 0 ? '+' : ''}${modifier}`;
+                    break;
+                case 'charisma':
+                    modifier = mods.cha;
+                    modifierText = `CHA ${modifier >= 0 ? '+' : ''}${modifier}`;
+                    break;
+                case 'initiative':
+                    modifier = mods.dex;
+                    modifierText = `Initiative (DEX ${modifier >= 0 ? '+' : ''}${modifier})`;
+                    break;
+                case 'attack':
+                    // For attacks, use STR or DEX (choose higher for simplicity)
+                    modifier = Math.max(mods.str, mods.dex) + profBonus;
+                    modifierText = `Attack (${modifier >= 0 ? '+' : ''}${modifier})`;
+                    break;
+                default:
+                    return { total: roll, modifier: 0, text: 'No modifier' };
+            }
+            
+            return {
+                total: roll + modifier,
+                modifier: modifier,
+                text: modifierText,
+                baseRoll: roll
+            };
+        }
+
         // Message Handling
         function handleKeyPress(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
@@ -1064,8 +1172,23 @@
                 return;
             }
 
+            // Check if message contains a roll (e.g., "I rolled 15")
+            const rollMatch = message.match(/(?:rolled|roll|got)\s+(?:a\s+)?(\d+)/i);
+            let enhancedMessage = message;
+            
+            if (rollMatch && gameState.lastRollType) {
+                const rawRoll = parseInt(rollMatch[1]);
+                const result = applyModifier(rawRoll, gameState.lastRollType);
+                
+                // Enhance the message with calculated total
+                enhancedMessage = `${message} (${result.baseRoll} + ${result.modifier} = ${result.total} total for ${result.text})`;
+                
+                addSystemMessage(`🎲 Roll detected: ${result.baseRoll} + ${result.modifier} (${result.text}) = **${result.total}**`);
+                gameState.lastRollType = null; // Clear after use
+            }
+
             input.value = '';
-            addPlayerMessage(message);
+            addPlayerMessage(message); // Show original message
             gameState.adventureState.messageCount++;
             updateAdventureJournal();
 
@@ -1074,8 +1197,30 @@
             sendBtn.innerHTML = 'Thinking<span class="loading"></span>';
 
             try {
-                const response = await callAI(message);
+                const response = await callAI(enhancedMessage); // Send enhanced message to AI
                 addDMMessage(response);
+                
+                // Detect if DM is asking for a roll
+                const detectedRollType = detectRollType(response);
+                if (detectedRollType) {
+                    gameState.lastRollType = detectedRollType;
+                    const mods = getModifiers();
+                    let modInfo = '';
+                    
+                    switch(detectedRollType) {
+                        case 'strength': modInfo = `STR modifier: ${mods.str >= 0 ? '+' : ''}${mods.str}`; break;
+                        case 'dexterity': modInfo = `DEX modifier: ${mods.dex >= 0 ? '+' : ''}${mods.dex}`; break;
+                        case 'constitution': modInfo = `CON modifier: ${mods.con >= 0 ? '+' : ''}${mods.con}`; break;
+                        case 'intelligence': modInfo = `INT modifier: ${mods.int >= 0 ? '+' : ''}${mods.int}`; break;
+                        case 'wisdom': modInfo = `WIS modifier: ${mods.wis >= 0 ? '+' : ''}${mods.wis}`; break;
+                        case 'charisma': modInfo = `CHA modifier: ${mods.cha >= 0 ? '+' : ''}${mods.cha}`; break;
+                        case 'initiative': modInfo = `DEX modifier: ${mods.dex >= 0 ? '+' : ''}${mods.dex}`; break;
+                    }
+                    
+                    if (modInfo) {
+                        addSystemMessage(`💡 ${modInfo} - Just tell me your d20 roll and I'll add it automatically!`);
+                    }
+                }
                 
                 // Check for automatic context summarization
                 if (shouldSummarize()) {
@@ -1563,6 +1708,22 @@ The adventure should be challenging, fun, and responsive to player choices.`;
         }
 
         // Dice Rolling
+        function quickRoll(rollType) {
+            const d20Roll = Math.floor(Math.random() * 20) + 1;
+            const result = applyModifier(d20Roll, rollType);
+            
+            showRollResult(result.total, `d20 + ${result.text}`, [d20Roll], result.modifier);
+            
+            const message = `🎲 ${result.text}: ${d20Roll} + ${result.modifier} = **${result.total}**`;
+            addSystemMessage(message);
+            
+            // Auto-send to DM if there's a pending roll request
+            if (gameState.lastRollType === rollType) {
+                document.getElementById('playerInput').value = `I rolled ${d20Roll}`;
+                setTimeout(() => sendMessage(), 500);
+            }
+        }
+
         function rollDice(sides) {
             const result = Math.floor(Math.random() * sides) + 1;
             showRollResult(result, `d${sides}`, [result]);
