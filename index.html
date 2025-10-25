@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Solo Play - AI Dungeon Master</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #ffd700;
+            font-size: 24px;
+        }
+
+        .api-config {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .api-config input {
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            width: 300px;
+        }
+
+        .api-config select {
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .panel h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #ffd700;
+            padding-bottom: 5px;
+        }
+
+        .character-sheet {
+            grid-row: 2 / 3;
+        }
+
+        .stat-group {
+            margin-bottom: 15px;
+        }
+
+        .stat-group label {
+            display: block;
+            color: #ffd700;
+            margin-bottom: 5px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .stat-group input, .stat-group textarea {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            font-family: inherit;
+        }
+
+        .stat-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .abilities {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .ability {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .ability label {
+            font-size: 10px;
+            color: #ffd700;
+        }
+
+        .ability input {
+            width: 100%;
+            text-align: center;
+            margin-top: 4px;
+            padding: 4px;
+        }
+
+        .chat-area {
+            grid-column: 2;
+            grid-row: 2 / 3;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            max-width: 80%;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.dm {
+            background: rgba(139, 69, 19, 0.3);
+            align-self: flex-start;
+            border-left: 3px solid #8b4513;
+        }
+
+        .message.player {
+            background: rgba(25, 135, 84, 0.3);
+            align-self: flex-end;
+            border-right: 3px solid #198754;
+        }
+
+        .message.system {
+            background: rgba(108, 117, 125, 0.3);
+            align-self: center;
+            font-style: italic;
+            text-align: center;
+            max-width: 60%;
+        }
+
+        .message-sender {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #ffd700;
+        }
+
+        .input-area {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 4px;
+            border: none;
+            background: #ffd700;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #ffed4e;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .right-panel {
+            grid-column: 3;
+            grid-row: 2 / 3;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dice-roller {
+            flex: 0 0 auto;
+        }
+
+        .dice-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .dice-btn {
+            padding: 10px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 215, 0, 0.2);
+            color: #ffd700;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .dice-btn:hover {
+            background: rgba(255, 215, 0, 0.4);
+            transform: scale(1.05);
+        }
+
+        .custom-roll {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .custom-roll input {
+            flex: 1;
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+        }
+
+        .roll-result {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+            margin-top: 10px;
+            border: 2px solid #ffd700;
+        }
+
+        .roll-result .total {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .roll-result .details {
+            font-size: 12px;
+            margin-top: 5px;
+            color: #aaa;
+        }
+
+        .initiative-tracker {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .initiative-controls {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .initiative-controls input {
+            flex: 1;
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+        }
+
+        .initiative-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .initiative-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .initiative-item.active {
+            background: rgba(255, 215, 0, 0.3);
+            border: 2px solid #ffd700;
+        }
+
+        .initiative-item .name {
+            font-weight: bold;
+        }
+
+        .initiative-item .roll {
+            color: #ffd700;
+            font-size: 18px;
+        }
+
+        .initiative-item .remove {
+            background: rgba(220, 53, 69, 0.5);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #ffd700;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 215, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 215, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚔️ D&D Solo Play</h1>
+            <div class="api-config">
+                <select id="apiProvider">
+                    <option value="anthropic">Anthropic Claude</option>
+                    <option value="openai">OpenAI GPT</option>
+                </select>
+                <input type="password" id="apiKey" placeholder="Enter your API key">
+                <button class="btn" onclick="saveApiKey()">Save Key</button>
+            </div>
+        </div>
+
+        <div class="panel character-sheet">
+            <h2>📜 Character Sheet</h2>
+            <div class="stat-group">
+                <label>Character Name</label>
+                <input type="text" id="charName" placeholder="Enter name" onchange="saveCharacter()">
+            </div>
+            <div class="stat-grid">
+                <div class="stat-group">
+                    <label>Class</label>
+                    <input type="text" id="charClass" placeholder="Fighter" onchange="saveCharacter()">
+                </div>
+                <div class="stat-group">
+                    <label>Level</label>
+                    <input type="number" id="charLevel" value="1" onchange="saveCharacter()">
+                </div>
+                <div class="stat-group">
+                    <label>Race</label>
+                    <input type="text" id="charRace" placeholder="Human" onchange="saveCharacter()">
+                </div>
+                <div class="stat-group">
+                    <label>HP</label>
+                    <input type="text" id="charHP" placeholder="12/12" onchange="saveCharacter()">
+                </div>
+                <div class="stat-group">
+                    <label>AC</label>
+                    <input type="number" id="charAC" placeholder="15" onchange="saveCharacter()">
+                </div>
+                <div class="stat-group">
+                    <label>Speed</label>
+                    <input type="text" id="charSpeed" placeholder="30 ft" onchange="saveCharacter()">
+                </div>
+            </div>
+            
+            <h2 style="margin-top: 20px; font-size: 14px;">Ability Scores</h2>
+            <div class="abilities">
+                <div class="ability">
+                    <label>STR</label>
+                    <input type="number" id="str" value="10" onchange="saveCharacter()">
+                </div>
+                <div class="ability">
+                    <label>DEX</label>
+                    <input type="number" id="dex" value="10" onchange="saveCharacter()">
+                </div>
+                <div class="ability">
+                    <label>CON</label>
+                    <input type="number" id="con" value="10" onchange="saveCharacter()">
+                </div>
+                <div class="ability">
+                    <label>INT</label>
+                    <input type="number" id="int" value="10" onchange="saveCharacter()">
+                </div>
+                <div class="ability">
+                    <label>WIS</label>
+                    <input type="number" id="wis" value="10" onchange="saveCharacter()">
+                </div>
+                <div class="ability">
+                    <label>CHA</label>
+                    <input type="number" id="cha" value="10" onchange="saveCharacter()">
+                </div>
+            </div>
+
+            <div class="stat-group" style="margin-top: 15px;">
+                <label>Equipment & Items</label>
+                <textarea id="charEquipment" placeholder="Longsword, Shield, Leather Armor..." onchange="saveCharacter()"></textarea>
+            </div>
+
+            <div class="stat-group">
+                <label>Features & Abilities</label>
+                <textarea id="charFeatures" placeholder="Second Wind, Action Surge..." onchange="saveCharacter()"></textarea>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-sm" onclick="newAdventure()">New Adventure</button>
+                <button class="btn btn-sm" onclick="saveGame()">Save Game</button>
+                <button class="btn btn-sm" onclick="loadGame()">Load Game</button>
+            </div>
+        </div>
+
+        <div class="panel chat-area">
+            <div class="messages" id="messages">
+                <div class="message system">
+                    <div class="message-content">Welcome to D&D Solo Play! Configure your API key above, fill in your character sheet, then type a message to begin your adventure.</div>
+                </div>
+            </div>
+            <div class="input-area">
+                <div class="input-group">
+                    <input type="text" id="playerInput" placeholder="Describe your action..." onkeypress="handleKeyPress(event)">
+                    <button class="btn" onclick="sendMessage()" id="sendBtn">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="panel dice-roller">
+                <h2>🎲 Dice Roller</h2>
+                <div class="dice-buttons">
+                    <button class="dice-btn" onclick="rollDice(4)">d4</button>
+                    <button class="dice-btn" onclick="rollDice(6)">d6</button>
+                    <button class="dice-btn" onclick="rollDice(8)">d8</button>
+                    <button class="dice-btn" onclick="rollDice(10)">d10</button>
+                    <button class="dice-btn" onclick="rollDice(12)">d12</button>
+                    <button class="dice-btn" onclick="rollDice(20)">d20</button>
+                    <button class="dice-btn" onclick="rollDice(100)">d100</button>
+                </div>
+                <div class="custom-roll">
+                    <input type="text" id="customDice" placeholder="2d6+3">
+                    <button class="btn btn-sm" onclick="rollCustom()">Roll</button>
+                </div>
+                <div id="rollResult"></div>
+            </div>
+
+            <div class="panel initiative-tracker">
+                <h2>⚔️ Initiative Tracker</h2>
+                <div class="initiative-controls">
+                    <input type="text" id="initName" placeholder="Name">
+                    <input type="number" id="initRoll" placeholder="Roll">
+                    <button class="btn btn-sm" onclick="addInitiative()">Add</button>
+                </div>
+                <div class="action-buttons" style="margin-bottom: 10px;">
+                    <button class="btn btn-sm" onclick="nextTurn()">Next Turn</button>
+                    <button class="btn btn-sm" onclick="clearInitiative()">Clear</button>
+                </div>
+                <div class="initiative-list" id="initiativeList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let conversationHistory = [];
+        let apiKey = localStorage.getItem('dnd_api_key') || '';
+        let apiProvider = localStorage.getItem('dnd_api_provider') || 'anthropic';
+        let initiativeOrder = [];
+        let currentTurn = 0;
+
+        window.onload = function() {
+            if (apiKey) {
+                document.getElementById('apiKey').value = apiKey;
+            }
+            document.getElementById('apiProvider').value = apiProvider;
+            loadCharacter();
+            loadConversation();
+        };
+
+        function saveApiKey() {
+            apiKey = document.getElementById('apiKey').value;
+            apiProvider = document.getElementById('apiProvider').value;
+            localStorage.setItem('dnd_api_key', apiKey);
+            localStorage.setItem('dnd_api_provider', apiProvider);
+            addSystemMessage('API key saved! You can now start your adventure.');
+        }
+
+        function saveCharacter() {
+            const character = {
+                name: document.getElementById('charName').value,
+                class: document.getElementById('charClass').value,
+                level: document.getElementById('charLevel').value,
+                race: document.getElementById('charRace').value,
+                hp: document.getElementById('charHP').value,
+                ac: document.getElementById('charAC').value,
+                speed: document.getElementById('charSpeed').value,
+                str: document.getElementById('str').value,
+                dex: document.getElementById('dex').value,
+                con: document.getElementById('con').value,
+                int: document.getElementById('int').value,
+                wis: document.getElementById('wis').value,
+                cha: document.getElementById('cha').value,
+                equipment: document.getElementById('charEquipment').value,
+                features: document.getElementById('charFeatures').value
+            };
+            localStorage.setItem('dnd_character', JSON.stringify(character));
+        }
+
+        function loadCharacter() {
+            const saved = localStorage.getItem('dnd_character');
+            if (saved) {
+                const character = JSON.parse(saved);
+                document.getElementById('charName').value = character.name || '';
+                document.getElementById('charClass').value = character.class || '';
+                document.getElementById('charLevel').value = character.level || '1';
+                document.getElementById('charRace').value = character.race || '';
+                document.getElementById('charHP').value = character.hp || '';
+                document.getElementById('charAC').value = character.ac || '';
+                document.getElementById('charSpeed').value = character.speed || '';
+                document.getElementById('str').value = character.str || '10';
+                document.getElementById('dex').value = character.dex || '10';
+                document.getElementById('con').value = character.con || '10';
+                document.getElementById('int').value = character.int || '10';
+                document.getElementById('wis').value = character.wis || '10';
+                document.getElementById('cha').value = character.cha || '10';
+                document.getElementById('charEquipment').value = character.equipment || '';
+                document.getElementById('charFeatures').value = character.features || '';
+            }
+        }
+
+        function getCharacterSummary() {
+            return `Character: ${document.getElementById('charName').value || 'Unknown'}, Level ${document.getElementById('charLevel').value} ${document.getElementById('charRace').value} ${document.getElementById('charClass').value}. HP: ${document.getElementById('charHP').value}, AC: ${document.getElementById('charAC').value}. STR ${document.getElementById('str').value}, DEX ${document.getElementById('dex').value}, CON ${document.getElementById('con').value}, INT ${document.getElementById('int').value}, WIS ${document.getElementById('wis').value}, CHA ${document.getElementById('cha').value}.`;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('playerInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            if (!apiKey) {
+                addSystemMessage('Please configure your API key first!');
+                return;
+            }
+
+            input.value = '';
+            addPlayerMessage(message);
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = 'Thinking<span class="loading"></span>';
+
+            try {
+                const response = await callAI(message);
+                addDMMessage(response);
+            } catch (error) {
+                addSystemMessage('Error: ' + error.message);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = 'Send';
+            }
+        }
+
+        async function callAI(userMessage) {
+            const systemPrompt = `You are an expert Dungeon Master running a solo D&D 5e campaign. The player's character is: ${getCharacterSummary()}
+
+Rules:
+- Be engaging, descriptive, and immersive
+- Follow D&D 5e rules
+- When actions require rolls, tell the player what to roll (e.g., "Roll a d20 for perception")
+- Respond to player actions with appropriate consequences
+- Create interesting encounters, NPCs, and story moments
+- Keep the story moving forward
+- Be concise but vivid (2-4 paragraphs typically)
+- If the player rolls dice, they'll include the result in their message
+
+The adventure should be challenging, fun, and responsive to player choices.`;
+
+            if (conversationHistory.length === 0) {
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: 'Welcome, adventurer! Tell me what kind of adventure you seek, or I can start you on a classic quest. What would you like to do?'
+                });
+            }
+
+            conversationHistory.push({
+                role: 'user',
+                content: userMessage
+            });
+
+            let response;
+
+            if (apiProvider === 'anthropic') {
+                response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 1024,
+                        system: systemPrompt,
+                        messages: conversationHistory
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} - ${await response.text()}`);
+                }
+
+                const data = await response.json();
+                const assistantMessage = data.content[0].text;
+                
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: assistantMessage
+                });
+
+                saveConversation();
+                return assistantMessage;
+
+            } else {
+                const messages = [
+                    { role: 'system', content: systemPrompt },
+                    ...conversationHistory
+                ];
+
+                response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4',
+                        messages: messages,
+                        max_tokens: 1024
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} - ${await response.text()}`);
+                }
+
+                const data = await response.json();
+                const assistantMessage = data.choices[0].message.content;
+                
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: assistantMessage
+                });
+
+                saveConversation();
+                return assistantMessage;
+            }
+        }
+
+        function addPlayerMessage(text) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message player';
+            messageDiv.innerHTML = `<div class="message-sender">You</div><div class="message-content">${escapeHtml(text)}</div>`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addDMMessage(text) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message dm';
+            messageDiv.innerHTML = `<div class="message-sender">Dungeon Master</div><div class="message-content">${escapeHtml(text)}</div>`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            messageDiv.innerHTML = `<div class="message-content">${escapeHtml(text)}</div>`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        function saveConversation() {
+            localStorage.setItem('dnd_conversation', JSON.stringify(conversationHistory));
+        }
+
+        function loadConversation() {
+            const saved = localStorage.getItem('dnd_conversation');
+            if (saved) {
+                conversationHistory = JSON.parse(saved);
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML = '';
+                
+                conversationHistory.forEach(msg => {
+                    if (msg.role === 'user') {
+                        addPlayerMessage(msg.content);
+                    } else if (msg.role === 'assistant') {
+                        addDMMessage(msg.content);
+                    }
+                });
+            }
+        }
+
+        function newAdventure() {
+            if (confirm('Start a new adventure? This will clear your current conversation.')) {
+                conversationHistory = [];
+                localStorage.removeItem('dnd_conversation');
+                document.getElementById('messages').innerHTML = '<div class="message system"><div class="message-content">New adventure started! Describe what you\'d like to do.</div></div>';
+            }
+        }
+
+        function saveGame() {
+            const gameState = {
+                character: JSON.parse(localStorage.getItem('dnd_character') || '{}'),
+                conversation: conversationHistory,
+                initiative: initiativeOrder,
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(gameState, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dnd-save-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            addSystemMessage('Game saved to file!');
+        }
+
+        function loadGame() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const gameState = JSON.parse(event.target.result);
+                        
+                        localStorage.setItem('dnd_character', JSON.stringify(gameState.character));
+                        loadCharacter();
+                        
+                        conversationHistory = gameState.conversation || [];
+                        saveConversation();
+                        loadConversation();
+                        
+                        initiativeOrder = gameState.initiative || [];
+                        renderInitiative();
+                        
+                        addSystemMessage('Game loaded successfully!');
+                    } catch (error) {
+                        addSystemMessage('Error loading save file: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function rollDice(sides) {
+            const result = Math.floor(Math.random() * sides) + 1;
+            showRollResult(result, `d${sides}`, [result]);
+            addSystemMessage(`🎲 Rolled d${sides}: ${result}`);
+        }
+
+        function rollCustom() {
+            const input = document.getElementById('customDice').value.trim();
+            if (!input) return;
+
+            try {
+                const result = parseAndRollDice(input);
+                showRollResult(result.total, input, result.rolls, result.modifier);
+                addSystemMessage(`🎲 Rolled ${input}: ${result.total}`);
+            } catch (error) {
+                addSystemMessage('Invalid dice notation. Use format like: 2d6+3');
+            }
+        }
+
+        function parseAndRollDice(notation) {
+            const match = notation.match(/(\d+)d(\d+)([+-]\d+)?/i);
+            if (!match) throw new Error('Invalid notation');
+
+            const count = parseInt(match[1]);
+            const sides = parseInt(match[2]);
+            const modifier = match[3] ? parseInt(match[3]) : 0;
+
+            const rolls = [];
+            for (let i = 0; i < count; i++) {
+                rolls.push(Math.floor(Math.random() * sides) + 1);
+            }
+
+            const sum = rolls.reduce((a, b) => a + b, 0);
+            const total = sum + modifier;
+
+            return { total, rolls, modifier };
+        }
+
+        function showRollResult(total, notation, rolls, modifier = 0) {
+            const resultDiv = document.getElementById('rollResult');
+            let details = rolls.join(', ');
+            if (modifier !== 0) {
+                details += ` ${modifier >= 0 ? '+' : ''}${modifier}`;
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="roll-result">
+                    <div class="total">${total}</div>
+                    <div class="details">${notation}: [${details}]</div>
+                </div>
+            `;
+        }
+
+        function addInitiative() {
+            const name = document.getElementById('initName').value.trim();
+            const roll = parseInt(document.getElementById('initRoll').value);
+
+            if (!name || isNaN(roll)) {
+                addSystemMessage('Please enter both name and initiative roll');
+                return;
+            }
+
+            initiativeOrder.push({ name, roll });
+            initiativeOrder.sort((a, b) => b.roll - a.roll);
+            
+            document.getElementById('initName').value = '';
+            document.getElementById('initRoll').value = '';
+            
+            renderInitiative();
+            addSystemMessage(`Added ${name} to initiative (${roll})`);
+        }
+
+        function removeInitiative(index) {
+            const removed = initiativeOrder.splice(index, 1)[0];
+            if (currentTurn >= index && currentTurn > 0) {
+                currentTurn--;
+            }
+            renderInitiative();
+            addSystemMessage(`Removed ${removed.name} from initiative`);
+        }
+
+        function nextTurn() {
+            if (initiativeOrder.length === 0) return;
+            
+            currentTurn = (currentTurn + 1) % initiativeOrder.length;
+            renderInitiative();
+            
+            const current = initiativeOrder[currentTurn];
+            addSystemMessage(`⚔️ ${current.name}'s turn!`);
+        }
+
+        function clearInitiative() {
+            if (confirm('Clear all initiative?')) {
+                initiativeOrder = [];
+                currentTurn = 0;
+                renderInitiative();
+                addSystemMessage('Initiative cleared');
+            }
+        }
+
+        function renderInitiative() {
+            const list = document.getElementById('initiativeList');
+            list.innerHTML = '';
+
+            initiativeOrder.forEach((entry, index) => {
+                const item = document.createElement('div');
+                item.className = 'initiative-item' + (index === currentTurn ? ' active' : '');
+                item.innerHTML = `
+                    <span class="name">${escapeHtml(entry.name)}</span>
+                    <span class="roll">${entry.roll}</span>
+                    <button class="remove" onclick="removeInitiative(${index})">×</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+    </script>
+</body>
+</html>
