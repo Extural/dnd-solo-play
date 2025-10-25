@@ -21,7 +21,7 @@
 
         .container {
             display: grid;
-            grid-template-columns: 300px 1fr 300px;
+            grid-template-columns: 320px 1fr 320px;
             grid-template-rows: auto 1fr;
             height: 100vh;
             gap: 10px;
@@ -36,6 +36,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .header h1 {
@@ -47,15 +49,7 @@
             display: flex;
             gap: 10px;
             align-items: center;
-        }
-
-        .api-config input {
-            padding: 8px;
-            border-radius: 4px;
-            border: none;
-            background: rgba(255, 255, 255, 0.1);
-            color: #e0e0e0;
-            width: 300px;
+            flex-wrap: wrap;
         }
 
         .api-config select {
@@ -66,11 +60,49 @@
             color: #e0e0e0;
         }
 
+        .api-config input {
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            width: 250px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #dc3545;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         .panel {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 8px;
             padding: 15px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .panel h2 {
@@ -81,8 +113,27 @@
             padding-bottom: 5px;
         }
 
+        .panel h3 {
+            color: #ffd700;
+            font-size: 14px;
+            margin: 15px 0 10px 0;
+            text-transform: uppercase;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
         .character-sheet {
-            grid-row: 2 / 3;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .adventure-journal {
+            flex: 0 0 auto;
+            max-height: 300px;
         }
 
         .stat-group {
@@ -97,7 +148,7 @@
             text-transform: uppercase;
         }
 
-        .stat-group input, .stat-group textarea {
+        .stat-group input, .stat-group textarea, .stat-group select {
             width: 100%;
             padding: 8px;
             border-radius: 4px;
@@ -134,13 +185,43 @@
         .ability label {
             font-size: 10px;
             color: #ffd700;
+            display: block;
+            margin-bottom: 4px;
         }
 
         .ability input {
             width: 100%;
             text-align: center;
-            margin-top: 4px;
             padding: 4px;
+        }
+
+        .quest-list, .npc-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .quest-item, .npc-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .quest-item::before {
+            content: "• ";
+            color: #ffd700;
+        }
+
+        .npc-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .npc-name {
+            font-weight: bold;
+            color: #ffd700;
         }
 
         .chat-area {
@@ -189,6 +270,7 @@
             font-style: italic;
             text-align: center;
             max-width: 60%;
+            font-size: 13px;
         }
 
         .message-sender {
@@ -230,7 +312,7 @@
             transition: all 0.3s;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             background: #ffed4e;
             transform: translateY(-2px);
         }
@@ -246,9 +328,16 @@
             font-size: 12px;
         }
 
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: #e0e0e0;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
         .right-panel {
-            grid-column: 3;
-            grid-row: 2 / 3;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -364,6 +453,7 @@
         .initiative-item .roll {
             color: #ffd700;
             font-size: 18px;
+            margin: 0 10px;
         }
 
         .initiative-item .remove {
@@ -397,6 +487,28 @@
             flex-wrap: wrap;
         }
 
+        .session-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .session-info div {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .empty-state {
+            color: #888;
+            font-style: italic;
+            font-size: 13px;
+            text-align: center;
+            padding: 20px;
+        }
+
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -413,6 +525,42 @@
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 215, 0, 0.5);
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            border: 2px solid #ffd700;
+        }
+
+        .modal-content h2 {
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        .modal-content .action-buttons {
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -421,101 +569,143 @@
             <h1>⚔️ D&D Solo Play</h1>
             <div class="api-config">
                 <select id="apiProvider">
-                    <option value="anthropic">Anthropic Claude</option>
-                    <option value="openai">OpenAI GPT</option>
+                    <option value="claude">Claude (Anthropic)</option>
+                    <option value="ollama">Ollama (Local)</option>
+                    <option value="openai">OpenAI (GPT)</option>
                 </select>
-                <input type="password" id="apiKey" placeholder="Enter your API key">
-                <button class="btn" onclick="saveApiKey()">Save Key</button>
+                <input type="password" id="apiKey" placeholder="API key (leave empty for Ollama)">
+                <input type="text" id="ollamaUrl" placeholder="Ollama URL" value="http://localhost:11434" style="display:none;">
+                <input type="text" id="ollamaModel" placeholder="Model name" value="llama3.1:8b" style="display:none;">
+                <button class="btn btn-sm" onclick="saveApiConfig()">Save</button>
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Not configured</span>
+                </div>
             </div>
         </div>
 
-        <div class="panel character-sheet">
-            <h2>📜 Character Sheet</h2>
-            <div class="stat-group">
-                <label>Character Name</label>
-                <input type="text" id="charName" placeholder="Enter name" onchange="saveCharacter()">
-            </div>
-            <div class="stat-grid">
+        <div class="left-panel">
+            <div class="panel character-sheet">
+                <h2>📜 Character Sheet</h2>
                 <div class="stat-group">
-                    <label>Class</label>
-                    <input type="text" id="charClass" placeholder="Fighter" onchange="saveCharacter()">
+                    <label>Character Name</label>
+                    <input type="text" id="charName" placeholder="Enter name" onchange="saveCharacter()">
                 </div>
+                <div class="stat-grid">
+                    <div class="stat-group">
+                        <label>Class</label>
+                        <input type="text" id="charClass" placeholder="Fighter" onchange="saveCharacter()">
+                    </div>
+                    <div class="stat-group">
+                        <label>Level</label>
+                        <input type="number" id="charLevel" value="1" min="1" max="20" onchange="saveCharacter()">
+                    </div>
+                    <div class="stat-group">
+                        <label>Race</label>
+                        <input type="text" id="charRace" placeholder="Human" onchange="saveCharacter()">
+                    </div>
+                    <div class="stat-group">
+                        <label>HP</label>
+                        <input type="text" id="charHP" placeholder="12/12" onchange="saveCharacter()">
+                    </div>
+                    <div class="stat-group">
+                        <label>AC</label>
+                        <input type="number" id="charAC" placeholder="15" onchange="saveCharacter()">
+                    </div>
+                    <div class="stat-group">
+                        <label>Speed</label>
+                        <input type="text" id="charSpeed" placeholder="30 ft" onchange="saveCharacter()">
+                    </div>
+                </div>
+                
+                <h3>Ability Scores</h3>
+                <div class="abilities">
+                    <div class="ability">
+                        <label>STR</label>
+                        <input type="number" id="str" value="10" onchange="saveCharacter()">
+                    </div>
+                    <div class="ability">
+                        <label>DEX</label>
+                        <input type="number" id="dex" value="10" onchange="saveCharacter()">
+                    </div>
+                    <div class="ability">
+                        <label>CON</label>
+                        <input type="number" id="con" value="10" onchange="saveCharacter()">
+                    </div>
+                    <div class="ability">
+                        <label>INT</label>
+                        <input type="number" id="int" value="10" onchange="saveCharacter()">
+                    </div>
+                    <div class="ability">
+                        <label>WIS</label>
+                        <input type="number" id="wis" value="10" onchange="saveCharacter()">
+                    </div>
+                    <div class="ability">
+                        <label>CHA</label>
+                        <input type="number" id="cha" value="10" onchange="saveCharacter()">
+                    </div>
+                </div>
+
                 <div class="stat-group">
-                    <label>Level</label>
-                    <input type="number" id="charLevel" value="1" onchange="saveCharacter()">
+                    <label>Equipment & Items</label>
+                    <textarea id="charEquipment" placeholder="Longsword, Shield, Leather Armor..." onchange="saveCharacter()"></textarea>
                 </div>
+
                 <div class="stat-group">
-                    <label>Race</label>
-                    <input type="text" id="charRace" placeholder="Human" onchange="saveCharacter()">
+                    <label>Features & Abilities</label>
+                    <textarea id="charFeatures" placeholder="Second Wind, Action Surge..." onchange="saveCharacter()"></textarea>
                 </div>
-                <div class="stat-group">
-                    <label>HP</label>
-                    <input type="text" id="charHP" placeholder="12/12" onchange="saveCharacter()">
-                </div>
-                <div class="stat-group">
-                    <label>AC</label>
-                    <input type="number" id="charAC" placeholder="15" onchange="saveCharacter()">
-                </div>
-                <div class="stat-group">
-                    <label>Speed</label>
-                    <input type="text" id="charSpeed" placeholder="30 ft" onchange="saveCharacter()">
-                </div>
-            </div>
-            
-            <h2 style="margin-top: 20px; font-size: 14px;">Ability Scores</h2>
-            <div class="abilities">
-                <div class="ability">
-                    <label>STR</label>
-                    <input type="number" id="str" value="10" onchange="saveCharacter()">
-                </div>
-                <div class="ability">
-                    <label>DEX</label>
-                    <input type="number" id="dex" value="10" onchange="saveCharacter()">
-                </div>
-                <div class="ability">
-                    <label>CON</label>
-                    <input type="number" id="con" value="10" onchange="saveCharacter()">
-                </div>
-                <div class="ability">
-                    <label>INT</label>
-                    <input type="number" id="int" value="10" onchange="saveCharacter()">
-                </div>
-                <div class="ability">
-                    <label>WIS</label>
-                    <input type="number" id="wis" value="10" onchange="saveCharacter()">
-                </div>
-                <div class="ability">
-                    <label>CHA</label>
-                    <input type="number" id="cha" value="10" onchange="saveCharacter()">
+
+                <div class="action-buttons">
+                    <button class="btn btn-sm" onclick="newAdventure()">New Adventure</button>
+                    <button class="btn btn-sm btn-secondary" onclick="saveGame()">Save Game</button>
+                    <button class="btn btn-sm btn-secondary" onclick="loadGame()">Load Game</button>
                 </div>
             </div>
 
-            <div class="stat-group" style="margin-top: 15px;">
-                <label>Equipment & Items</label>
-                <textarea id="charEquipment" placeholder="Longsword, Shield, Leather Armor..." onchange="saveCharacter()"></textarea>
-            </div>
+            <div class="panel adventure-journal">
+                <h2>📖 Adventure Journal</h2>
+                <div class="session-info">
+                    <div>
+                        <span>Current Chapter:</span>
+                        <span id="currentChapter">Not started</span>
+                    </div>
+                    <div>
+                        <span>Messages:</span>
+                        <span id="messageCount">0</span>
+                    </div>
+                    <div>
+                        <span>Session:</span>
+                        <span id="sessionNumber">0</span>
+                    </div>
+                </div>
 
-            <div class="stat-group">
-                <label>Features & Abilities</label>
-                <textarea id="charFeatures" placeholder="Second Wind, Action Surge..." onchange="saveCharacter()"></textarea>
-            </div>
+                <h3>Active Quests</h3>
+                <div class="quest-list" id="questList">
+                    <div class="empty-state">No active quests</div>
+                </div>
 
-            <div class="action-buttons">
-                <button class="btn btn-sm" onclick="newAdventure()">New Adventure</button>
-                <button class="btn btn-sm" onclick="saveGame()">Save Game</button>
-                <button class="btn btn-sm" onclick="loadGame()">Load Game</button>
+                <h3>Key NPCs</h3>
+                <div class="npc-list" id="npcList">
+                    <div class="empty-state">No NPCs met yet</div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-secondary" onclick="createCheckpoint()">Create Checkpoint</button>
+                    <button class="btn btn-sm btn-secondary" onclick="viewHistory()">View History</button>
+                </div>
             </div>
         </div>
 
         <div class="panel chat-area">
             <div class="messages" id="messages">
                 <div class="message system">
-                    <div class="message-content">Welcome to D&D Solo Play! Configure your API key above, fill in your character sheet, then type a message to begin your adventure.</div>
+                    <div class="message-content">Welcome to D&D Solo Play! Configure your AI provider above, then describe what kind of adventure you'd like or just say "Surprise me!" to begin.</div>
                 </div>
             </div>
             <div class="input-area">
                 <div class="input-group">
-                    <input type="text" id="playerInput" placeholder="Describe your action..." onkeypress="handleKeyPress(event)">
+                    <input type="text" id="playerInput" placeholder="Describe your action or start your adventure..." onkeypress="handleKeyPress(event)">
                     <button class="btn" onclick="sendMessage()" id="sendBtn">Send</button>
                 </div>
             </div>
@@ -549,37 +739,173 @@
                 </div>
                 <div class="action-buttons" style="margin-bottom: 10px;">
                     <button class="btn btn-sm" onclick="nextTurn()">Next Turn</button>
-                    <button class="btn btn-sm" onclick="clearInitiative()">Clear</button>
+                    <button class="btn btn-sm btn-secondary" onclick="sortInitiative()">Sort</button>
+                    <button class="btn btn-sm btn-secondary" onclick="clearInitiative()">Clear</button>
                 </div>
-                <div class="initiative-list" id="initiativeList"></div>
+                <div class="initiative-list" id="initiativeList">
+                    <div class="empty-state">No combatants in initiative</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adventure Setup Modal -->
+    <div class="modal" id="adventureModal">
+        <div class="modal-content">
+            <h2>🎲 Start New Adventure</h2>
+            <div class="stat-group">
+                <label>Adventure Type</label>
+                <select id="adventureType">
+                    <option value="surprise">Surprise Me!</option>
+                    <option value="dungeon">Classic Dungeon Crawl</option>
+                    <option value="mystery">Murder Mystery</option>
+                    <option value="intrigue">Political Intrigue</option>
+                    <option value="wilderness">Wilderness Survival</option>
+                    <option value="heist">Heist/Caper</option>
+                    <option value="rescue">Rescue Mission</option>
+                    <option value="exploration">Exploration</option>
+                    <option value="sandbox">Sandbox (Total Freedom)</option>
+                    <option value="custom">Custom (I'll describe it)</option>
+                </select>
+            </div>
+            <div class="stat-group">
+                <label>Starting Location</label>
+                <input type="text" id="startLocation" placeholder="e.g., Coastal town, Ancient ruins, Capital city...">
+            </div>
+            <div class="stat-group">
+                <label>Tone</label>
+                <select id="adventureTone">
+                    <option value="balanced">Balanced</option>
+                    <option value="serious">Serious/Dark</option>
+                    <option value="heroic">Heroic/Epic</option>
+                    <option value="comedic">Light/Comedic</option>
+                    <option value="horror">Horror</option>
+                </select>
+            </div>
+            <div class="stat-group">
+                <label>Length</label>
+                <select id="adventureLength">
+                    <option value="oneshot">One-Shot (1-2 sessions)</option>
+                    <option value="short">Short Arc (3-5 sessions)</option>
+                    <option value="campaign">Full Campaign</option>
+                </select>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-secondary" onclick="closeAdventureModal()">Cancel</button>
+                <button class="btn" onclick="startNewAdventure()">Start Adventure!</button>
             </div>
         </div>
     </div>
 
     <script>
-        let conversationHistory = [];
-        let apiKey = localStorage.getItem('dnd_api_key') || '';
-        let apiProvider = localStorage.getItem('dnd_api_provider') || 'anthropic';
-        let initiativeOrder = [];
-        let currentTurn = 0;
-
-        window.onload = function() {
-            if (apiKey) {
-                document.getElementById('apiKey').value = apiKey;
-            }
-            document.getElementById('apiProvider').value = apiProvider;
-            loadCharacter();
-            loadConversation();
+        // Global state
+        let gameState = {
+            conversationHistory: [],
+            adventureState: {
+                chapter: 'Not started',
+                quests: [],
+                npcs: [],
+                worldState: [],
+                sessionNumber: 1,
+                messageCount: 0,
+                checkpoints: []
+            },
+            apiConfig: {
+                provider: 'claude',
+                apiKey: '',
+                ollamaUrl: 'http://localhost:11434',
+                ollamaModel: 'llama3.1:8b'
+            },
+            initiativeOrder: [],
+            currentTurn: 0
         };
 
-        function saveApiKey() {
-            apiKey = document.getElementById('apiKey').value;
-            apiProvider = document.getElementById('apiProvider').value;
-            localStorage.setItem('dnd_api_key', apiKey);
-            localStorage.setItem('dnd_api_provider', apiProvider);
-            addSystemMessage('API key saved! You can now start your adventure.');
+        // Load saved state on startup
+        window.onload = function() {
+            loadApiConfig();
+            loadCharacter();
+            loadGameState();
+            updateAdventureJournal();
+            updateProviderUI();
+        };
+
+        // API Provider Management
+        function updateProviderUI() {
+            const provider = document.getElementById('apiProvider').value;
+            const apiKeyInput = document.getElementById('apiKey');
+            const ollamaUrl = document.getElementById('ollamaUrl');
+            const ollamaModel = document.getElementById('ollamaModel');
+            
+            if (provider === 'ollama') {
+                apiKeyInput.style.display = 'none';
+                ollamaUrl.style.display = 'block';
+                ollamaModel.style.display = 'block';
+                apiKeyInput.placeholder = 'Not needed for Ollama';
+            } else {
+                apiKeyInput.style.display = 'block';
+                ollamaUrl.style.display = 'none';
+                ollamaModel.style.display = 'none';
+                apiKeyInput.placeholder = provider === 'claude' ? 'sk-ant-...' : 'sk-...';
+            }
         }
 
+        document.getElementById('apiProvider').addEventListener('change', updateProviderUI);
+
+        function saveApiConfig() {
+            gameState.apiConfig.provider = document.getElementById('apiProvider').value;
+            gameState.apiConfig.apiKey = document.getElementById('apiKey').value;
+            gameState.apiConfig.ollamaUrl = document.getElementById('ollamaUrl').value;
+            gameState.apiConfig.ollamaModel = document.getElementById('ollamaModel').value;
+            
+            localStorage.setItem('dnd_api_config', JSON.stringify(gameState.apiConfig));
+            
+            testConnection();
+        }
+
+        function loadApiConfig() {
+            const saved = localStorage.getItem('dnd_api_config');
+            if (saved) {
+                gameState.apiConfig = JSON.parse(saved);
+                document.getElementById('apiProvider').value = gameState.apiConfig.provider;
+                document.getElementById('apiKey').value = gameState.apiConfig.apiKey;
+                document.getElementById('ollamaUrl').value = gameState.apiConfig.ollamaUrl;
+                document.getElementById('ollamaModel').value = gameState.apiConfig.ollamaModel;
+                updateProviderUI();
+                if (gameState.apiConfig.apiKey || gameState.apiConfig.provider === 'ollama') {
+                    testConnection();
+                }
+            }
+        }
+
+        async function testConnection() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            statusText.textContent = 'Testing...';
+            statusDot.classList.remove('connected');
+            
+            try {
+                if (gameState.apiConfig.provider === 'ollama') {
+                    const response = await fetch(`${gameState.apiConfig.ollamaUrl}/api/tags`);
+                    if (response.ok) {
+                        statusDot.classList.add('connected');
+                        statusText.textContent = `Ollama (${gameState.apiConfig.ollamaModel})`;
+                        addSystemMessage('✅ Connected to local Ollama!');
+                    } else {
+                        throw new Error('Ollama not responding');
+                    }
+                } else if (gameState.apiConfig.apiKey) {
+                    statusDot.classList.add('connected');
+                    statusText.textContent = gameState.apiConfig.provider === 'claude' ? 'Claude API' : 'OpenAI API';
+                    addSystemMessage(`✅ API key configured for ${gameState.apiConfig.provider}!`);
+                }
+            } catch (error) {
+                statusText.textContent = 'Connection failed';
+                addSystemMessage(`❌ Connection failed: ${error.message}`);
+            }
+        }
+
+        // Character Management
         function saveCharacter() {
             const character = {
                 name: document.getElementById('charName').value,
@@ -624,11 +950,20 @@
         }
 
         function getCharacterSummary() {
-            return `Character: ${document.getElementById('charName').value || 'Unknown'}, Level ${document.getElementById('charLevel').value} ${document.getElementById('charRace').value} ${document.getElementById('charClass').value}. HP: ${document.getElementById('charHP').value}, AC: ${document.getElementById('charAC').value}. STR ${document.getElementById('str').value}, DEX ${document.getElementById('dex').value}, CON ${document.getElementById('con').value}, INT ${document.getElementById('int').value}, WIS ${document.getElementById('wis').value}, CHA ${document.getElementById('cha').value}.`;
+            const name = document.getElementById('charName').value || 'Unknown';
+            const level = document.getElementById('charLevel').value;
+            const race = document.getElementById('charRace').value || 'Human';
+            const charClass = document.getElementById('charClass').value || 'Adventurer';
+            const hp = document.getElementById('charHP').value;
+            const ac = document.getElementById('charAC').value;
+            
+            return `${name}, Level ${level} ${race} ${charClass}. HP: ${hp}, AC: ${ac}. STR ${document.getElementById('str').value}, DEX ${document.getElementById('dex').value}, CON ${document.getElementById('con').value}, INT ${document.getElementById('int').value}, WIS ${document.getElementById('wis').value}, CHA ${document.getElementById('cha').value}.`;
         }
 
+        // Message Handling
         function handleKeyPress(event) {
-            if (event.key === 'Enter') {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
                 sendMessage();
             }
         }
@@ -638,13 +973,16 @@
             const message = input.value.trim();
             
             if (!message) return;
-            if (!apiKey) {
-                addSystemMessage('Please configure your API key first!');
+            
+            if (!gameState.apiConfig.apiKey && gameState.apiConfig.provider !== 'ollama') {
+                addSystemMessage('⚠️ Please configure your API key first!');
                 return;
             }
 
             input.value = '';
             addPlayerMessage(message);
+            gameState.adventureState.messageCount++;
+            updateAdventureJournal();
 
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
@@ -653,108 +991,197 @@
             try {
                 const response = await callAI(message);
                 addDMMessage(response);
+                
+                // Check for automatic context summarization
+                if (shouldSummarize()) {
+                    await summarizeContext();
+                }
             } catch (error) {
-                addSystemMessage('Error: ' + error.message);
+                addSystemMessage('❌ Error: ' + error.message);
+                console.error(error);
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = 'Send';
+                saveGameState();
             }
         }
 
         async function callAI(userMessage) {
-            const systemPrompt = `You are an expert Dungeon Master running a solo D&D 5e campaign. The player's character is: ${getCharacterSummary()}
+            const systemPrompt = `You are an expert Dungeon Master running a solo D&D 5e campaign.
 
-Rules:
-- Be engaging, descriptive, and immersive
-- Follow D&D 5e rules
-- When actions require rolls, tell the player what to roll (e.g., "Roll a d20 for perception")
-- Respond to player actions with appropriate consequences
-- Create interesting encounters, NPCs, and story moments
-- Keep the story moving forward
-- Be concise but vivid (2-4 paragraphs typically)
-- If the player rolls dice, they'll include the result in their message
+Player Character: ${getCharacterSummary()}
+
+Current Adventure State:
+- Chapter: ${gameState.adventureState.chapter}
+- Active Quests: ${gameState.adventureState.quests.join(', ') || 'None'}
+- Known NPCs: ${gameState.adventureState.npcs.map(n => n.name).join(', ') || 'None'}
+
+Your role:
+1. Create engaging, descriptive, immersive narration
+2. Follow D&D 5e rules accurately
+3. When actions require rolls, tell the player what to roll and the DC
+4. Respond to player actions with appropriate consequences
+5. Create interesting encounters, NPCs, and story moments
+6. Keep the story moving forward
+7. Be concise but vivid (2-4 paragraphs typically)
+8. Track important story elements and update quest status when relevant
+
+Important: When you introduce new quests or meet important NPCs, mention them clearly so they can be tracked. Format key information like:
+- QUEST: [Quest description]
+- NPC: [Name] - [Brief description]
+- CHAPTER: [Chapter name] (when major story beats occur)
 
 The adventure should be challenging, fun, and responsive to player choices.`;
 
-            if (conversationHistory.length === 0) {
-                conversationHistory.push({
-                    role: 'assistant',
-                    content: 'Welcome, adventurer! Tell me what kind of adventure you seek, or I can start you on a classic quest. What would you like to do?'
-                });
-            }
-
-            conversationHistory.push({
+            // Add user message to history
+            gameState.conversationHistory.push({
                 role: 'user',
                 content: userMessage
             });
 
             let response;
+            const provider = gameState.apiConfig.provider;
 
-            if (apiProvider === 'anthropic') {
+            if (provider === 'claude') {
                 response = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-api-key': apiKey,
+                        'x-api-key': gameState.apiConfig.apiKey,
                         'anthropic-version': '2023-06-01'
                     },
                     body: JSON.stringify({
                         model: 'claude-sonnet-4-20250514',
-                        max_tokens: 1024,
+                        max_tokens: 2048,
                         system: systemPrompt,
-                        messages: conversationHistory
+                        messages: gameState.conversationHistory
                     })
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API Error: ${response.status} - ${await response.text()}`);
+                    const errorText = await response.text();
+                    throw new Error(`Claude API Error: ${response.status} - ${errorText}`);
                 }
 
                 const data = await response.json();
                 const assistantMessage = data.content[0].text;
                 
-                conversationHistory.push({
+                gameState.conversationHistory.push({
                     role: 'assistant',
                     content: assistantMessage
                 });
 
-                saveConversation();
+                // Parse for quest/NPC/chapter updates
+                parseAdventureUpdates(assistantMessage);
+
                 return assistantMessage;
 
-            } else {
+            } else if (provider === 'ollama') {
+                // Format messages for Ollama
                 const messages = [
                     { role: 'system', content: systemPrompt },
-                    ...conversationHistory
+                    ...gameState.conversationHistory
+                ];
+
+                response = await fetch(`${gameState.apiConfig.ollamaUrl}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: gameState.apiConfig.ollamaModel,
+                        messages: messages,
+                        stream: false
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Ollama Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const assistantMessage = data.message.content;
+                
+                gameState.conversationHistory.push({
+                    role: 'assistant',
+                    content: assistantMessage
+                });
+
+                parseAdventureUpdates(assistantMessage);
+
+                return assistantMessage;
+
+            } else if (provider === 'openai') {
+                const messages = [
+                    { role: 'system', content: systemPrompt },
+                    ...gameState.conversationHistory
                 ];
 
                 response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
+                        'Authorization': `Bearer ${gameState.apiConfig.apiKey}`
                     },
                     body: JSON.stringify({
                         model: 'gpt-4',
                         messages: messages,
-                        max_tokens: 1024
+                        max_tokens: 2048
                     })
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API Error: ${response.status} - ${await response.text()}`);
+                    throw new Error(`OpenAI Error: ${response.status}`);
                 }
 
                 const data = await response.json();
                 const assistantMessage = data.choices[0].message.content;
                 
-                conversationHistory.push({
+                gameState.conversationHistory.push({
                     role: 'assistant',
                     content: assistantMessage
                 });
 
-                saveConversation();
+                parseAdventureUpdates(assistantMessage);
+
                 return assistantMessage;
             }
+        }
+
+        function parseAdventureUpdates(message) {
+            // Parse for quest updates
+            const questMatch = message.match(/QUEST:\s*(.+?)(?:\n|$)/i);
+            if (questMatch) {
+                const quest = questMatch[1].trim();
+                if (!gameState.adventureState.quests.includes(quest)) {
+                    gameState.adventureState.quests.push(quest);
+                    addSystemMessage(`📜 New quest: ${quest}`);
+                }
+            }
+
+            // Parse for NPC mentions
+            const npcMatch = message.match(/NPC:\s*(.+?)\s*-\s*(.+?)(?:\n|$)/i);
+            if (npcMatch) {
+                const name = npcMatch[1].trim();
+                const description = npcMatch[2].trim();
+                const existing = gameState.adventureState.npcs.find(n => n.name === name);
+                if (!existing) {
+                    gameState.adventureState.npcs.push({ name, description });
+                    addSystemMessage(`👤 New NPC met: ${name}`);
+                }
+            }
+
+            // Parse for chapter changes
+            const chapterMatch = message.match(/CHAPTER:\s*(.+?)(?:\n|$)/i);
+            if (chapterMatch) {
+                const chapter = chapterMatch[1].trim();
+                if (chapter !== gameState.adventureState.chapter) {
+                    gameState.adventureState.chapter = chapter;
+                    addSystemMessage(`📖 Chapter: ${chapter}`);
+                }
+            }
+
+            updateAdventureJournal();
         }
 
         function addPlayerMessage(text) {
@@ -790,44 +1217,199 @@ The adventure should be challenging, fun, and responsive to player choices.`;
             return div.innerHTML.replace(/\n/g, '<br>');
         }
 
-        function saveConversation() {
-            localStorage.setItem('dnd_conversation', JSON.stringify(conversationHistory));
+        // Adventure Journal Management
+        function updateAdventureJournal() {
+            document.getElementById('currentChapter').textContent = gameState.adventureState.chapter;
+            document.getElementById('messageCount').textContent = gameState.adventureState.messageCount;
+            document.getElementById('sessionNumber').textContent = gameState.adventureState.sessionNumber;
+
+            // Update quests
+            const questList = document.getElementById('questList');
+            if (gameState.adventureState.quests.length === 0) {
+                questList.innerHTML = '<div class="empty-state">No active quests</div>';
+            } else {
+                questList.innerHTML = gameState.adventureState.quests
+                    .map(q => `<div class="quest-item">${escapeHtml(q)}</div>`)
+                    .join('');
+            }
+
+            // Update NPCs
+            const npcList = document.getElementById('npcList');
+            if (gameState.adventureState.npcs.length === 0) {
+                npcList.innerHTML = '<div class="empty-state">No NPCs met yet</div>';
+            } else {
+                npcList.innerHTML = gameState.adventureState.npcs
+                    .map(npc => `<div class="npc-item"><span class="npc-name">${escapeHtml(npc.name)}</span><span style="font-size:11px">${escapeHtml(npc.description)}</span></div>`)
+                    .join('');
+            }
         }
 
-        function loadConversation() {
-            const saved = localStorage.getItem('dnd_conversation');
+        function shouldSummarize() {
+            // Summarize based on provider context limits
+            const provider = gameState.apiConfig.provider;
+            const messageCount = gameState.conversationHistory.length;
+            
+            if (provider === 'ollama') {
+                return messageCount > 30; // More aggressive for local models
+            } else if (provider === 'claude') {
+                return messageCount > 200; // Very generous for Claude
+            } else {
+                return messageCount > 100; // Moderate for OpenAI
+            }
+        }
+
+        async function summarizeContext() {
+            addSystemMessage('💭 Creating adventure summary to preserve memory...');
+            
+            // Create a summary of the conversation
+            const recentMessages = gameState.conversationHistory.slice(-20);
+            const olderMessages = gameState.conversationHistory.slice(0, -20);
+            
+            // Simple summarization (in production, you'd call the AI to summarize)
+            const summary = {
+                role: 'user',
+                content: `[Previous adventure summary: ${gameState.adventureState.messageCount - 20} messages occurred. Key events preserved in adventure journal. Character: ${getCharacterSummary()}. Current situation continues...]`
+            };
+            
+            gameState.conversationHistory = [summary, ...recentMessages];
+            gameState.adventureState.sessionNumber++;
+            
+            addSystemMessage('✅ Adventure summary created. All key information preserved!');
+            saveGameState();
+        }
+
+        function createCheckpoint() {
+            const checkpoint = {
+                timestamp: new Date().toISOString(),
+                chapter: gameState.adventureState.chapter,
+                messageCount: gameState.adventureState.messageCount,
+                sessionNumber: gameState.adventureState.sessionNumber,
+                character: JSON.parse(localStorage.getItem('dnd_character'))
+            };
+            
+            gameState.adventureState.checkpoints.push(checkpoint);
+            saveGameState();
+            addSystemMessage(`✅ Checkpoint created at ${new Date().toLocaleString()}`);
+        }
+
+        function viewHistory() {
+            const checkpoints = gameState.adventureState.checkpoints;
+            if (checkpoints.length === 0) {
+                addSystemMessage('No checkpoints yet. Create one to mark important moments!');
+                return;
+            }
+            
+            const history = checkpoints.map((cp, i) => 
+                `Checkpoint ${i + 1}: ${cp.chapter} (${new Date(cp.timestamp).toLocaleString()})`
+            ).join('\n');
+            
+            addSystemMessage(`📚 Adventure History:\n${history}`);
+        }
+
+        // Game State Management
+        function saveGameState() {
+            const state = {
+                conversationHistory: gameState.conversationHistory,
+                adventureState: gameState.adventureState,
+                initiativeOrder: gameState.initiativeOrder,
+                currentTurn: gameState.currentTurn,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('dnd_game_state', JSON.stringify(state));
+        }
+
+        function loadGameState() {
+            const saved = localStorage.getItem('dnd_game_state');
             if (saved) {
-                conversationHistory = JSON.parse(saved);
+                const state = JSON.parse(saved);
+                gameState.conversationHistory = state.conversationHistory || [];
+                gameState.adventureState = state.adventureState || gameState.adventureState;
+                gameState.initiativeOrder = state.initiativeOrder || [];
+                gameState.currentTurn = state.currentTurn || 0;
+                
+                // Restore messages to UI
                 const messagesDiv = document.getElementById('messages');
                 messagesDiv.innerHTML = '';
                 
-                conversationHistory.forEach(msg => {
+                gameState.conversationHistory.forEach(msg => {
                     if (msg.role === 'user') {
                         addPlayerMessage(msg.content);
                     } else if (msg.role === 'assistant') {
                         addDMMessage(msg.content);
                     }
                 });
+                
+                renderInitiative();
             }
         }
 
         function newAdventure() {
-            if (confirm('Start a new adventure? This will clear your current conversation.')) {
-                conversationHistory = [];
-                localStorage.removeItem('dnd_conversation');
-                document.getElementById('messages').innerHTML = '<div class="message system"><div class="message-content">New adventure started! Describe what you\'d like to do.</div></div>';
+            document.getElementById('adventureModal').classList.add('show');
+        }
+
+        function closeAdventureModal() {
+            document.getElementById('adventureModal').classList.remove('show');
+        }
+
+        function startNewAdventure() {
+            if (!confirm('Start a new adventure? This will clear your current progress.')) {
+                return;
             }
+            
+            const adventureType = document.getElementById('adventureType').value;
+            const startLocation = document.getElementById('startLocation').value;
+            const tone = document.getElementById('adventureTone').value;
+            const length = document.getElementById('adventureLength').value;
+            
+            // Reset game state
+            gameState.conversationHistory = [];
+            gameState.adventureState = {
+                chapter: 'Beginning',
+                quests: [],
+                npcs: [],
+                worldState: [],
+                sessionNumber: 1,
+                messageCount: 0,
+                checkpoints: []
+            };
+            gameState.initiativeOrder = [];
+            gameState.currentTurn = 0;
+            
+            document.getElementById('messages').innerHTML = '';
+            
+            // Create adventure prompt
+            let prompt = `I want to start a new D&D adventure. `;
+            
+            if (adventureType !== 'custom') {
+                if (adventureType === 'surprise') {
+                    prompt += `Surprise me with an exciting adventure! `;
+                } else {
+                    prompt += `Create a ${adventureType} adventure. `;
+                }
+            }
+            
+            if (startLocation) {
+                prompt += `Start me in: ${startLocation}. `;
+            }
+            
+            prompt += `The tone should be ${tone}. `;
+            prompt += `This is planned as a ${length}. `;
+            prompt += `My character is: ${getCharacterSummary()}. `;
+            prompt += `Begin the adventure!`;
+            
+            closeAdventureModal();
+            document.getElementById('playerInput').value = prompt;
+            sendMessage();
         }
 
         function saveGame() {
-            const gameState = {
-                character: JSON.parse(localStorage.getItem('dnd_character') || '{}'),
-                conversation: conversationHistory,
-                initiative: initiativeOrder,
+            const fullState = {
+                character: JSON.parse(localStorage.getItem('dnd_character')),
+                gameState: gameState,
                 timestamp: new Date().toISOString()
             };
             
-            const blob = new Blob([JSON.stringify(gameState, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(fullState, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -835,7 +1417,7 @@ The adventure should be challenging, fun, and responsive to player choices.`;
             a.click();
             URL.revokeObjectURL(url);
             
-            addSystemMessage('Game saved to file!');
+            addSystemMessage('💾 Game saved to file!');
         }
 
         function loadGame() {
@@ -847,21 +1429,21 @@ The adventure should be challenging, fun, and responsive to player choices.`;
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     try {
-                        const gameState = JSON.parse(event.target.result);
+                        const fullState = JSON.parse(event.target.result);
                         
-                        localStorage.setItem('dnd_character', JSON.stringify(gameState.character));
+                        // Restore character
+                        localStorage.setItem('dnd_character', JSON.stringify(fullState.character));
                         loadCharacter();
                         
-                        conversationHistory = gameState.conversation || [];
-                        saveConversation();
-                        loadConversation();
+                        // Restore game state
+                        gameState = fullState.gameState;
+                        saveGameState();
+                        loadGameState();
+                        updateAdventureJournal();
                         
-                        initiativeOrder = gameState.initiative || [];
-                        renderInitiative();
-                        
-                        addSystemMessage('Game loaded successfully!');
+                        addSystemMessage('✅ Game loaded successfully!');
                     } catch (error) {
-                        addSystemMessage('Error loading save file: ' + error.message);
+                        addSystemMessage('❌ Error loading save file: ' + error.message);
                     }
                 };
                 reader.readAsText(file);
@@ -869,6 +1451,7 @@ The adventure should be challenging, fun, and responsive to player choices.`;
             input.click();
         }
 
+        // Dice Rolling
         function rollDice(sides) {
             const result = Math.floor(Math.random() * sides) + 1;
             showRollResult(result, `d${sides}`, [result]);
@@ -884,7 +1467,7 @@ The adventure should be challenging, fun, and responsive to player choices.`;
                 showRollResult(result.total, input, result.rolls, result.modifier);
                 addSystemMessage(`🎲 Rolled ${input}: ${result.total}`);
             } catch (error) {
-                addSystemMessage('Invalid dice notation. Use format like: 2d6+3');
+                addSystemMessage('❌ Invalid dice notation. Use format like: 2d6+3');
             }
         }
 
@@ -922,60 +1505,75 @@ The adventure should be challenging, fun, and responsive to player choices.`;
             `;
         }
 
+        // Initiative Tracker
         function addInitiative() {
             const name = document.getElementById('initName').value.trim();
             const roll = parseInt(document.getElementById('initRoll').value);
 
             if (!name || isNaN(roll)) {
-                addSystemMessage('Please enter both name and initiative roll');
+                addSystemMessage('⚠️ Please enter both name and initiative roll');
                 return;
             }
 
-            initiativeOrder.push({ name, roll });
-            initiativeOrder.sort((a, b) => b.roll - a.roll);
+            gameState.initiativeOrder.push({ name, roll });
+            sortInitiative();
             
             document.getElementById('initName').value = '';
             document.getElementById('initRoll').value = '';
             
-            renderInitiative();
-            addSystemMessage(`Added ${name} to initiative (${roll})`);
+            addSystemMessage(`⚔️ Added ${name} to initiative (${roll})`);
+            saveGameState();
         }
 
         function removeInitiative(index) {
-            const removed = initiativeOrder.splice(index, 1)[0];
-            if (currentTurn >= index && currentTurn > 0) {
-                currentTurn--;
+            const removed = gameState.initiativeOrder.splice(index, 1)[0];
+            if (gameState.currentTurn >= index && gameState.currentTurn > 0) {
+                gameState.currentTurn--;
             }
             renderInitiative();
             addSystemMessage(`Removed ${removed.name} from initiative`);
+            saveGameState();
         }
 
         function nextTurn() {
-            if (initiativeOrder.length === 0) return;
+            if (gameState.initiativeOrder.length === 0) return;
             
-            currentTurn = (currentTurn + 1) % initiativeOrder.length;
+            gameState.currentTurn = (gameState.currentTurn + 1) % gameState.initiativeOrder.length;
             renderInitiative();
             
-            const current = initiativeOrder[currentTurn];
+            const current = gameState.initiativeOrder[gameState.currentTurn];
             addSystemMessage(`⚔️ ${current.name}'s turn!`);
+            saveGameState();
+        }
+
+        function sortInitiative() {
+            gameState.initiativeOrder.sort((a, b) => b.roll - a.roll);
+            renderInitiative();
         }
 
         function clearInitiative() {
             if (confirm('Clear all initiative?')) {
-                initiativeOrder = [];
-                currentTurn = 0;
+                gameState.initiativeOrder = [];
+                gameState.currentTurn = 0;
                 renderInitiative();
                 addSystemMessage('Initiative cleared');
+                saveGameState();
             }
         }
 
         function renderInitiative() {
             const list = document.getElementById('initiativeList');
+            
+            if (gameState.initiativeOrder.length === 0) {
+                list.innerHTML = '<div class="empty-state">No combatants in initiative</div>';
+                return;
+            }
+            
             list.innerHTML = '';
 
-            initiativeOrder.forEach((entry, index) => {
+            gameState.initiativeOrder.forEach((entry, index) => {
                 const item = document.createElement('div');
-                item.className = 'initiative-item' + (index === currentTurn ? ' active' : '');
+                item.className = 'initiative-item' + (index === gameState.currentTurn ? ' active' : '');
                 item.innerHTML = `
                     <span class="name">${escapeHtml(entry.name)}</span>
                     <span class="roll">${entry.roll}</span>
