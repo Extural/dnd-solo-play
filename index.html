@@ -615,6 +615,156 @@
             justify-content: flex-end;
             margin-top: 20px;
         }
+
+        .char-creation-wizard {
+            max-width: 600px;
+        }
+
+        .creation-step {
+            display: none;
+        }
+
+        .creation-step.active {
+            display: block;
+        }
+
+        .step-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .step-number {
+            background: #ffd700;
+            color: #1a1a2e;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .ability-roller {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .ability-roll-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .ability-roll-item label {
+            display: block;
+            color: #ffd700;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .ability-roll-item .roll-value {
+            font-size: 32px;
+            color: #ffd700;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .ability-roll-item .roll-details {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .skill-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+
+        .skill-option {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .skill-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .skill-option.selected {
+            background: rgba(255, 215, 0, 0.3);
+            border: 2px solid #ffd700;
+        }
+
+        .skill-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+
+        .hp-roller {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .hp-result {
+            font-size: 48px;
+            color: #ffd700;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .stat-summary {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .stat-summary h4 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .stat-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .wizard-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .roll-all-btn {
+            background: rgba(255, 215, 0, 0.2);
+            color: #ffd700;
+            border: 2px solid #ffd700;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .roll-all-btn:hover {
+            background: rgba(255, 215, 0, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -711,6 +861,7 @@
                 </div>
 
                 <div class="action-buttons">
+                    <button class="btn btn-sm" onclick="openCharCreation()">Create Character</button>
                     <button class="btn btn-sm" onclick="newAdventure()">New Adventure</button>
                     <button class="btn btn-sm btn-secondary" onclick="saveGame()">Save Game</button>
                     <button class="btn btn-sm btn-secondary" onclick="loadGame()">Load Game</button>
@@ -869,6 +1020,214 @@
             <div class="action-buttons">
                 <button class="btn btn-secondary" onclick="closeAdventureModal()">Cancel</button>
                 <button class="btn" onclick="startNewAdventure()">Start Adventure!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Character Creation Wizard -->
+    <div class="modal" id="charCreationModal">
+        <div class="modal-content char-creation-wizard">
+            <!-- Step 1: Race & Class -->
+            <div class="creation-step active" id="step1">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <h2>Race & Class</h2>
+                </div>
+                
+                <div class="stat-group">
+                    <label>Race</label>
+                    <select id="newRace">
+                        <option value="">Select Race</option>
+                        <option value="Human">Human</option>
+                        <option value="Elf">Elf</option>
+                        <option value="Dwarf">Dwarf</option>
+                        <option value="Halfling">Halfling</option>
+                        <option value="Dragonborn">Dragonborn</option>
+                        <option value="Gnome">Gnome</option>
+                        <option value="Half-Elf">Half-Elf</option>
+                        <option value="Half-Orc">Half-Orc</option>
+                        <option value="Tiefling">Tiefling</option>
+                    </select>
+                </div>
+
+                <div class="stat-group">
+                    <label>Class</label>
+                    <select id="newClass" onchange="updateSubclasses()">
+                        <option value="">Select Class</option>
+                        <option value="Barbarian">Barbarian</option>
+                        <option value="Bard">Bard</option>
+                        <option value="Cleric">Cleric</option>
+                        <option value="Druid">Druid</option>
+                        <option value="Fighter">Fighter</option>
+                        <option value="Monk">Monk</option>
+                        <option value="Paladin">Paladin</option>
+                        <option value="Ranger">Ranger</option>
+                        <option value="Rogue">Rogue</option>
+                        <option value="Sorcerer">Sorcerer</option>
+                        <option value="Warlock">Warlock</option>
+                        <option value="Wizard">Wizard</option>
+                    </select>
+                </div>
+
+                <div class="stat-group" id="subclassGroup" style="display:none;">
+                    <label>Subclass</label>
+                    <select id="newSubclass"></select>
+                </div>
+
+                <div class="stat-group">
+                    <label>Background</label>
+                    <select id="newBackground">
+                        <option value="">Select Background</option>
+                        <option value="Acolyte">Acolyte</option>
+                        <option value="Charlatan">Charlatan</option>
+                        <option value="Criminal">Criminal</option>
+                        <option value="Entertainer">Entertainer</option>
+                        <option value="Folk Hero">Folk Hero</option>
+                        <option value="Guild Artisan">Guild Artisan</option>
+                        <option value="Hermit">Hermit</option>
+                        <option value="Noble">Noble</option>
+                        <option value="Outlander">Outlander</option>
+                        <option value="Sage">Sage</option>
+                        <option value="Sailor">Sailor</option>
+                        <option value="Soldier">Soldier</option>
+                        <option value="Urchin">Urchin</option>
+                    </select>
+                </div>
+
+                <div class="stat-group">
+                    <label>Level</label>
+                    <select id="newLevel">
+                        <option value="1" selected>1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                    </select>
+                </div>
+
+                <div class="wizard-nav">
+                    <button class="btn btn-secondary" onclick="closeCharCreation()">Cancel</button>
+                    <button class="btn" onclick="nextStep(2)">Next: Abilities</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Ability Scores -->
+            <div class="creation-step" id="step2">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <h2>Ability Scores</h2>
+                    <p style="font-size:14px; color:#999;">Roll 4d6, drop lowest, reroll 1s and 2s</p>
+                </div>
+
+                <button class="roll-all-btn" onclick="rollAllAbilities()">🎲 Roll All Abilities</button>
+
+                <div class="ability-roller">
+                    <div class="ability-roll-item">
+                        <label>Strength</label>
+                        <div class="roll-value" id="rollStr">-</div>
+                        <div class="roll-details" id="rollStrDetails"></div>
+                        <button class="btn btn-sm" onclick="rollAbility('str')">Roll</button>
+                    </div>
+                    <div class="ability-roll-item">
+                        <label>Dexterity</label>
+                        <div class="roll-value" id="rollDex">-</div>
+                        <div class="roll-details" id="rollDexDetails"></div>
+                        <button class="btn btn-sm" onclick="rollAbility('dex')">Roll</button>
+                    </div>
+                    <div class="ability-roll-item">
+                        <label>Constitution</label>
+                        <div class="roll-value" id="rollCon">-</div>
+                        <div class="roll-details" id="rollConDetails"></div>
+                        <button class="btn btn-sm" onclick="rollAbility('con')">Roll</button>
+                    </div>
+                    <div class="ability-roll-item">
+                        <label>Intelligence</label>
+                        <div class="roll-value" id="rollInt">-</div>
+                        <div class="roll-details" id="rollIntDetails"></div>
+                        <button class="btn btn-sm" onclick="rollAbility('int')">Roll</button>
+                    </div>
+                    <div class="ability-roll-item">
+                        <label>Wisdom</label>
+                        <div class="roll-value" id="rollWis">-</div>
+                        <div class="roll-details" id="rollWisDetails"></div>
+                        <button class="btn btn-sm" onclick="rollAbility('wis')">Roll</button>
+                    </div>
+                    <div class="ability-roll-item">
+                        <label>Charisma</label>
+                        <div class="roll-value" id="rollCha">-</div>
+                        <div class="roll-details" id="rollChaDetails"></div>
+                        <button class="btn btn-sm" onclick="rollAbility('cha')">Roll</button>
+                    </div>
+                </div>
+
+                <div class="wizard-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(1)">Back</button>
+                    <button class="btn" onclick="nextStep(3)" id="abilitiesNext">Next: Hit Points</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Hit Points -->
+            <div class="creation-step" id="step3">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <h2>Hit Points</h2>
+                </div>
+
+                <div class="hp-roller">
+                    <p id="hpInstructions">Click to roll your hit points!</p>
+                    <div class="hp-result" id="hpResult">-</div>
+                    <button class="btn" onclick="rollHP()" id="rollHPBtn">Roll Hit Points</button>
+                    <p style="font-size:12px; color:#999; margin-top:15px;" id="hpFormula"></p>
+                </div>
+
+                <div class="wizard-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(2)">Back</button>
+                    <button class="btn" onclick="nextStep(4)" id="hpNext" disabled>Next: Skills</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Skills -->
+            <div class="creation-step" id="step4">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <h2>Skills & Proficiencies</h2>
+                    <p style="font-size:14px; color:#999;">Select <span id="skillCount">4</span> skills</p>
+                </div>
+
+                <div class="skill-selector" id="skillSelector"></div>
+
+                <div class="wizard-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(3)">Back</button>
+                    <button class="btn" onclick="nextStep(5)" id="skillsNext">Next: Summary</button>
+                </div>
+            </div>
+
+            <!-- Step 5: Summary & Name -->
+            <div class="creation-step" id="step5">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <h2>Finalize Character</h2>
+                </div>
+
+                <div class="stat-group">
+                    <label>Character Name</label>
+                    <input type="text" id="newName" placeholder="Enter character name">
+                </div>
+
+                <div class="stat-summary">
+                    <h4>Character Summary</h4>
+                    <div class="stat-summary-grid" id="charSummary"></div>
+                </div>
+
+                <div class="wizard-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(4)">Back</button>
+                    <button class="btn" onclick="finalizeCharacter()">Create Character!</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1705,6 +2064,290 @@ The adventure should be challenging, fun, and responsive to player choices.`;
                 reader.readAsText(file);
             };
             input.click();
+        }
+
+        // Character Creation Wizard
+        const subclasses = {
+            'Barbarian': ['Path of the Berserker', 'Path of the Totem Warrior'],
+            'Bard': ['College of Lore', 'College of Valor'],
+            'Cleric': ['Life Domain', 'Light Domain', 'Trickery Domain', 'War Domain'],
+            'Druid': ['Circle of the Land', 'Circle of the Moon'],
+            'Fighter': ['Champion', 'Battle Master', 'Eldritch Knight'],
+            'Monk': ['Way of the Open Hand', 'Way of Shadow', 'Way of the Four Elements'],
+            'Paladin': ['Oath of Devotion', 'Oath of the Ancients', 'Oath of Vengeance'],
+            'Ranger': ['Hunter', 'Beast Master'],
+            'Rogue': ['Thief', 'Assassin', 'Arcane Trickster'],
+            'Sorcerer': ['Draconic Bloodline', 'Wild Magic'],
+            'Warlock': ['The Fiend', 'The Great Old One', 'The Archfey'],
+            'Wizard': ['School of Evocation', 'School of Abjuration', 'School of Divination']
+        };
+
+        const classHitDice = {
+            'Barbarian': 12, 'Fighter': 10, 'Paladin': 10, 'Ranger': 10,
+            'Bard': 8, 'Cleric': 8, 'Druid': 8, 'Monk': 8, 'Rogue': 8, 'Warlock': 8,
+            'Sorcerer': 6, 'Wizard': 6
+        };
+
+        const allSkills = [
+            'Acrobatics (DEX)', 'Animal Handling (WIS)', 'Arcana (INT)', 'Athletics (STR)',
+            'Deception (CHA)', 'History (INT)', 'Insight (WIS)', 'Intimidation (CHA)',
+            'Investigation (INT)', 'Medicine (WIS)', 'Nature (INT)', 'Perception (WIS)',
+            'Performance (CHA)', 'Persuasion (CHA)', 'Religion (INT)', 'Sleight of Hand (DEX)',
+            'Stealth (DEX)', 'Survival (WIS)'
+        ];
+
+        let characterCreation = {
+            abilities: {},
+            hp: 0,
+            skills: [],
+            currentStep: 1
+        };
+
+        function openCharCreation() {
+            document.getElementById('charCreationModal').classList.add('show');
+            characterCreation = { abilities: {}, hp: 0, skills: [], currentStep: 1 };
+            showStep(1);
+        }
+
+        function closeCharCreation() {
+            document.getElementById('charCreationModal').classList.remove('show');
+        }
+
+        function showStep(step) {
+            document.querySelectorAll('.creation-step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step' + step).classList.add('active');
+            characterCreation.currentStep = step;
+
+            if (step === 3) {
+                updateHPInstructions();
+            } else if (step === 4) {
+                populateSkills();
+            } else if (step === 5) {
+                updateCharacterSummary();
+            }
+        }
+
+        function nextStep(step) {
+            if (characterCreation.currentStep === 1) {
+                if (!document.getElementById('newRace').value || !document.getElementById('newClass').value || !document.getElementById('newBackground').value) {
+                    addSystemMessage('⚠️ Please select race, class, and background');
+                    return;
+                }
+            } else if (characterCreation.currentStep === 2) {
+                if (Object.keys(characterCreation.abilities).length < 6) {
+                    addSystemMessage('⚠️ Please roll all ability scores');
+                    return;
+                }
+            } else if (characterCreation.currentStep === 3) {
+                if (characterCreation.hp === 0) {
+                    addSystemMessage('⚠️ Please roll hit points');
+                    return;
+                }
+            }
+            showStep(step);
+        }
+
+        function prevStep(step) {
+            showStep(step);
+        }
+
+        function updateSubclasses() {
+            const charClass = document.getElementById('newClass').value;
+            const subclassGroup = document.getElementById('subclassGroup');
+            const subclassSelect = document.getElementById('newSubclass');
+
+            if (charClass && subclasses[charClass]) {
+                subclassSelect.innerHTML = '<option value="">Select Subclass (Optional)</option>';
+                subclasses[charClass].forEach(sub => {
+                    subclassSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+                });
+                subclassGroup.style.display = 'block';
+            } else {
+                subclassGroup.style.display = 'none';
+            }
+        }
+
+        function rollAbilityDice() {
+            let rolls = [];
+            for (let i = 0; i < 4; i++) {
+                let roll = Math.floor(Math.random() * 6) + 1;
+                while (roll <= 2) {
+                    roll = Math.floor(Math.random() * 6) + 1;
+                }
+                rolls.push(roll);
+            }
+            rolls.sort((a, b) => b - a);
+            const dropped = rolls.pop();
+            const total = rolls.reduce((a, b) => a + b, 0);
+            return { total, rolls, dropped };
+        }
+
+        function rollAbility(ability) {
+            const result = rollAbilityDice();
+            characterCreation.abilities[ability] = result.total;
+
+            document.getElementById('roll' + ability.charAt(0).toUpperCase() + ability.slice(1)).textContent = result.total;
+            document.getElementById('roll' + ability.charAt(0).toUpperCase() + ability.slice(1) + 'Details').textContent = 
+                `Rolled: ${result.rolls.join(', ')} (dropped ${result.dropped})`;
+
+            if (Object.keys(characterCreation.abilities).length === 6) {
+                document.getElementById('abilitiesNext').disabled = false;
+            }
+        }
+
+        function rollAllAbilities() {
+            ['str', 'dex', 'con', 'int', 'wis', 'cha'].forEach(ability => {
+                rollAbility(ability);
+            });
+        }
+
+        function updateHPInstructions() {
+            const charClass = document.getElementById('newClass').value;
+            const level = parseInt(document.getElementById('newLevel').value);
+            const hitDie = classHitDice[charClass] || 8;
+
+            if (level === 1) {
+                const conMod = getAbilityModifier(characterCreation.abilities.con);
+                const hp = hitDie + conMod;
+                document.getElementById('hpInstructions').textContent = 
+                    `At level 1, you get maximum hit points!`;
+                document.getElementById('hpFormula').textContent = 
+                    `${hitDie} (class max) + ${conMod} (CON modifier) = ${hp} HP`;
+                document.getElementById('hpResult').textContent = hp;
+                document.getElementById('rollHPBtn').style.display = 'none';
+                document.getElementById('hpNext').disabled = false;
+                characterCreation.hp = hp;
+            } else {
+                document.getElementById('hpInstructions').textContent = 
+                    `Roll d${hitDie} for each level after 1st`;
+                document.getElementById('hpFormula').textContent = 
+                    `First level: ${hitDie} + Then roll d${hitDie} for ${level - 1} more levels`;
+                document.getElementById('rollHPBtn').style.display = 'inline-block';
+            }
+        }
+
+        function rollHP() {
+            const charClass = document.getElementById('newClass').value;
+            const level = parseInt(document.getElementById('newLevel').value);
+            const hitDie = classHitDice[charClass] || 8;
+            const conMod = getAbilityModifier(characterCreation.abilities.con);
+
+            let totalHP = hitDie + conMod;
+            let rollDetails = [`Level 1: ${hitDie} + ${conMod} = ${hitDie + conMod}`];
+
+            for (let i = 2; i <= level; i++) {
+                const roll = Math.floor(Math.random() * hitDie) + 1;
+                const levelHP = roll + conMod;
+                totalHP += levelHP;
+                rollDetails.push(`Level ${i}: ${roll} + ${conMod} = ${levelHP}`);
+            }
+
+            characterCreation.hp = totalHP;
+            document.getElementById('hpResult').textContent = totalHP;
+            document.getElementById('hpFormula').textContent = rollDetails.join(' | ');
+            document.getElementById('hpNext').disabled = false;
+            document.getElementById('rollHPBtn').disabled = true;
+        }
+
+        function populateSkills() {
+            const skillSelector = document.getElementById('skillSelector');
+            skillSelector.innerHTML = '';
+
+            allSkills.forEach((skill, index) => {
+                const div = document.createElement('div');
+                div.className = 'skill-option';
+                div.innerHTML = `
+                    <input type="checkbox" id="skill${index}" onchange="toggleSkill(${index})">
+                    <label for="skill${index}">${skill}</label>
+                `;
+                skillSelector.appendChild(div);
+            });
+        }
+
+        function toggleSkill(index) {
+            const checkbox = document.getElementById('skill' + index);
+            const skillDiv = checkbox.parentElement;
+
+            if (checkbox.checked) {
+                if (characterCreation.skills.length >= 4) {
+                    checkbox.checked = false;
+                    addSystemMessage('⚠️ Maximum 4 skills');
+                    return;
+                }
+                characterCreation.skills.push(allSkills[index]);
+                skillDiv.classList.add('selected');
+            } else {
+                characterCreation.skills = characterCreation.skills.filter(s => s !== allSkills[index]);
+                skillDiv.classList.remove('selected');
+            }
+        }
+
+        function updateCharacterSummary() {
+            const summary = document.getElementById('charSummary');
+            const race = document.getElementById('newRace').value;
+            const charClass = document.getElementById('newClass').value;
+            const subclass = document.getElementById('newSubclass').value;
+            const background = document.getElementById('newBackground').value;
+            const level = document.getElementById('newLevel').value;
+
+            let classText = charClass;
+            if (subclass) classText += ` (${subclass})`;
+
+            const ac = 10 + getAbilityModifier(characterCreation.abilities.dex);
+
+            summary.innerHTML = `
+                <div><strong>Race:</strong> ${race}</div>
+                <div><strong>Class:</strong> ${classText}</div>
+                <div><strong>Background:</strong> ${background}</div>
+                <div><strong>Level:</strong> ${level}</div>
+                <div><strong>HP:</strong> ${characterCreation.hp}/${characterCreation.hp}</div>
+                <div><strong>AC:</strong> ${ac}</div>
+                <div><strong>STR:</strong> ${characterCreation.abilities.str}</div>
+                <div><strong>DEX:</strong> ${characterCreation.abilities.dex}</div>
+                <div><strong>CON:</strong> ${characterCreation.abilities.con}</div>
+                <div><strong>INT:</strong> ${characterCreation.abilities.int}</div>
+                <div><strong>WIS:</strong> ${characterCreation.abilities.wis}</div>
+                <div><strong>CHA:</strong> ${characterCreation.abilities.cha}</div>
+                <div style="grid-column: 1/-1;"><strong>Skills:</strong> ${characterCreation.skills.join(', ')}</div>
+            `;
+        }
+
+        function finalizeCharacter() {
+            const name = document.getElementById('newName').value.trim();
+            if (!name) {
+                addSystemMessage('⚠️ Please enter a character name');
+                return;
+            }
+
+            document.getElementById('charName').value = name;
+            document.getElementById('charRace').value = document.getElementById('newRace').value;
+            document.getElementById('charClass').value = document.getElementById('newClass').value;
+            document.getElementById('charLevel').value = document.getElementById('newLevel').value;
+            document.getElementById('charHP').value = `${characterCreation.hp}/${characterCreation.hp}`;
+            
+            const ac = 10 + getAbilityModifier(characterCreation.abilities.dex);
+            document.getElementById('charAC').value = ac;
+            document.getElementById('charSpeed').value = '30 ft';
+
+            document.getElementById('str').value = characterCreation.abilities.str;
+            document.getElementById('dex').value = characterCreation.abilities.dex;
+            document.getElementById('con').value = characterCreation.abilities.con;
+            document.getElementById('int').value = characterCreation.abilities.int;
+            document.getElementById('wis').value = characterCreation.abilities.wis;
+            document.getElementById('cha').value = characterCreation.abilities.cha;
+
+            const subclass = document.getElementById('newSubclass').value;
+            const background = document.getElementById('newBackground').value;
+            let features = '';
+            if (subclass) features += `Subclass: ${subclass}\n`;
+            features += `Background: ${background}\n`;
+            features += `Proficient Skills: ${characterCreation.skills.join(', ')}`;
+            document.getElementById('charFeatures').value = features;
+
+            saveCharacter();
+            closeCharCreation();
+
+            addSystemMessage(`✅ Character created: ${name}, Level ${document.getElementById('charLevel').value} ${document.getElementById('charRace').value} ${document.getElementById('charClass').value}!`);
         }
 
         // Dice Rolling
