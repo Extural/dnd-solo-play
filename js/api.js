@@ -5,12 +5,14 @@ const APIModule = (function() {
     let apiProvider = 'ollama';
     let apiKey = '';
     let ollamaUrl = 'http://localhost:11434';
+    let ollamaModel = 'llama3.1:latest';
     let isConnected = false;
 
     function init() {
         loadAPISettings();
         attachEventListeners();
         updateConnectionStatus('disconnected', 'Not Connected');
+        toggleModelSelector();
     }
 
     function attachEventListeners() {
@@ -18,6 +20,7 @@ const APIModule = (function() {
             apiProvider = e.target.value;
             saveAPISettings();
             updateConnectionStatus('disconnected', 'Not Connected');
+            toggleModelSelector();
         });
 
         document.getElementById('apiKey')?.addEventListener('change', (e) => {
@@ -26,7 +29,86 @@ const APIModule = (function() {
             updateConnectionStatus('disconnected', 'Not Connected');
         });
 
+        document.getElementById('ollamaModel')?.addEventListener('change', (e) => {
+            ollamaModel = e.target.value;
+            saveAPISettings();
+            updateConnectionStatus('disconnected', 'Model Changed');
+        });
+
         document.getElementById('testConnectionBtn')?.addEventListener('click', testConnection);
+    }
+
+    function toggleModelSelector() {
+        const modelSelect = document.getElementById('ollamaModel');
+        const apiKeyInput = document.getElementById('apiKey');
+        
+        if (modelSelect && apiKeyInput) {
+            if (apiProvider === 'ollama') {
+                modelSelect.style.display = 'block';
+                apiKeyInput.style.display = 'none';
+                loadOllamaModels();
+            } else {
+                modelSelect.style.display = 'none';
+                apiKeyInput.style.display = 'block';
+            }
+        }
+    }
+
+    async function loadOllamaModels() {
+        try {
+            const response = await fetch(`${ollamaUrl}/api/tags`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const modelSelect = document.getElementById('ollamaModel');
+                
+                if (modelSelect && data.models && data.models.length > 0) {
+                    modelSelect.innerHTML = '<option value="">Select Ollama Model...</option>';
+                    
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = model.name;
+                        modelSelect.appendChild(option);
+                    });
+                    
+                    if (ollamaModel && data.models.find(m => m.name === ollamaModel)) {
+                        modelSelect.value = ollamaModel;
+                    } else if (data.models.length > 0) {
+                        modelSelect.value = data.models[0].name;
+                        ollamaModel = data.models[0].name;
+                        saveAPISettings();
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('Could not load Ollama models');
+        }
+    }
+
+    function saveAPISettings() {
+        localStorage.setItem('dnd_api_provider', apiProvider);
+        localStorage.setItem('dnd_api_key', apiKey);
+        localStorage.setItem('dnd_ollama_model', ollamaModel);
+    }
+
+    function loadAPISettings() {
+        apiProvider = localStorage.getItem('dnd_api_provider') || 'ollama';
+        apiKey = localStorage.getItem('dnd_api_key') || '';
+        ollamaModel = localStorage.getItem('dnd_ollama_model') || 'llama3.1:latest';
+        
+        if (document.getElementById('apiProvider')) {
+            document.getElementById('apiProvider').value = apiProvider;
+        }
+        if (document.getElementById('apiKey')) {
+            document.getElementById('apiKey').value = apiKey;
+        }
+        if (document.getElementById('ollamaModel')) {
+            document.getElementById('ollamaModel').value = ollamaModel;
+        }
     }
 
     function updateConnectionStatus(status, message) {
@@ -73,6 +155,10 @@ const APIModule = (function() {
     }
 
     async function testOllamaConnection() {
+        if (!ollamaModel) {
+            throw new Error('Please select an Ollama model');
+        }
+
         try {
             const response = await fetch(`${ollamaUrl}/api/tags`, {
                 method: 'GET',
@@ -80,23 +166,25 @@ const APIModule = (function() {
             });
 
             if (!response.ok) {
-                throw new Error('Ollama not responding. Make sure it\'s running: ollama serve');
+                throw new Error('Ollama not responding. Start it with: ollama serve');
             }
 
             const data = await response.json();
-            if (data.models && data.models.length > 0) {
-                updateConnectionStatus('connected', `✅ Ollama Connected (${data.models.length} models)`);
-                if (window.ChatModule) {
-                    window.ChatModule.addSystemMessage(`✅ Connected to Ollama! Available models: ${data.models.map(m => m.name).join(', ')}`);
-                }
-            } else {
-                updateConnectionStatus('disconnected', 'No Ollama models found');
-                if (window.ChatModule) {
-                    window.ChatModule.addSystemMessage('⚠️ Ollama connected but no models installed. Run: ollama pull llama3.1:latest');
-                }
+            if (!data.models || data.models.length === 0) {
+                throw new Error('No models installed. Run: ollama pull llama3.1:latest');
+            }
+
+            const modelExists = data.models.find(m => m.name === ollamaModel);
+            if (!modelExists) {
+                throw new Error(`Model "${ollamaModel}" not found. Run: ollama pull ${ollamaModel}`);
+            }
+
+            updateConnectionStatus('connected', `✅ Ollama: ${ollamaModel}`);
+            if (window.ChatModule) {
+                window.ChatModule.addSystemMessage(`✅ Connected to Ollama with model: ${ollamaModel}`);
             }
         } catch (error) {
-            throw new Error('Ollama not running. Start it with: ollama serve');
+            throw error;
         }
     }
 
@@ -106,7 +194,6 @@ const APIModule = (function() {
         }
 
         try {
-            // Test with a minimal request
             const response = await fetch('https://api.anthropic.com/v1/messages', {
                 method: 'POST',
                 headers: {
@@ -172,25 +259,7 @@ const APIModule = (function() {
         }
     }
 
-    function saveAPISettings() {
-        localStorage.setItem('dnd_api_provider', apiProvider);
-        localStorage.setItem('dnd_api_key', apiKey);
-    }
-
-    function loadAPISettings() {
-        apiProvider = localStorage.getItem('dnd_api_provider') || 'ollama';
-        apiKey = localStorage.getItem('dnd_api_key') || '';
-        
-        if (document.getElementById('apiProvider')) {
-            document.getElementById('apiProvider').value = apiProvider;
-        }
-        if (document.getElementById('apiKey')) {
-            document.getElementById('apiKey').value = apiKey;
-        }
-    }
-
     async function sendMessage(messages, isInGame = true) {
-        // Auto-update connection status when sending
         updateConnectionStatus('testing', 'Sending...');
         
         const character = window.CharacterModule.getCurrentCharacter();
@@ -249,25 +318,29 @@ Current Character:
     }
 
     async function sendToOllama(messages) {
+        if (!ollamaModel) {
+            throw new Error('Please select an Ollama model');
+        }
+
         try {
             const response = await fetch(`${ollamaUrl}/api/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: 'llama3.1:latest',
+                    model: ollamaModel,
                     messages: messages,
                     stream: false
                 })
             });
 
             if (!response.ok) {
-                throw new Error(`Ollama error: ${response.statusText}`);
+                throw new Error(`Ollama error: ${response.statusText}. Make sure model "${ollamaModel}" is installed.`);
             }
 
             const data = await response.json();
             return data.message.content;
         } catch (error) {
-            throw new Error(`Ollama connection failed: ${error.message}. Make sure Ollama is running locally.`);
+            throw new Error(`Ollama connection failed: ${error.message}. Make sure Ollama is running: ollama serve`);
         }
     }
 

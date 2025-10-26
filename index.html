@@ -18,6 +18,15 @@
                     <option value="openai">OpenAI (GPT)</option>
                 </select>
                 <input type="password" id="apiKey" placeholder="API Key (if needed)">
+                <select id="ollamaModel" style="display: none;">
+                    <option value="">Select Ollama Model...</option>
+                    <option value="llama3.1:latest">llama3.1:latest</option>
+                    <option value="llama3.2:latest">llama3.2:latest</option>
+                    <option value="mistral:latest">mistral:latest</option>
+                    <option value="mixtral:latest">mixtral:latest</option>
+                    <option value="gemma2:latest">gemma2:latest</option>
+                    <option value="qwen2.5:latest">qwen2.5:latest</option>
+                </select>
                 <button id="testConnectionBtn" class="test-connection-btn">Test Connection</button>
                 <div class="connection-status">
                     <div id="connectionIndicator" class="connection-indicator"></div>
