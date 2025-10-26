@@ -69,6 +69,62 @@ body {
     background: #3a3a5e;
 }
 
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 15px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 14px;
+}
+
+.connection-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #666;
+    animation: pulse 2s infinite;
+}
+
+.connection-indicator.connected {
+    background: #4CAF50;
+    box-shadow: 0 0 8px #4CAF50;
+}
+
+.connection-indicator.disconnected {
+    background: #f44336;
+}
+
+.connection-indicator.testing {
+    background: #ffd700;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.test-connection-btn {
+    padding: 8px 15px;
+    background: #3a7ca5;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.test-connection-btn:hover {
+    background: #4a8cb5;
+}
+
+.test-connection-btn:disabled {
+    background: #666;
+    cursor: not-allowed;
+}
+
 /* Panels */
 .panel {
     background: rgba(255, 255, 255, 0.05);
@@ -560,10 +616,37 @@ body {
 }
 
 /* Responsive Design */
+@media (max-width: 1400px) {
+    .api-config {
+        flex-wrap: wrap;
+    }
+    
+    .connection-status {
+        flex-basis: 100%;
+        margin-top: 10px;
+        justify-content: center;
+    }
+}
+
 @media (max-width: 1024px) {
     .container {
         grid-template-columns: 1fr;
         grid-template-rows: auto 1fr auto auto;
+    }
+    
+    .header {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .api-config {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .api-config input,
+    .api-config select {
+        width: 100%;
     }
     
     .character-sheet {

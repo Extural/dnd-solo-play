@@ -5,22 +5,171 @@ const APIModule = (function() {
     let apiProvider = 'ollama';
     let apiKey = '';
     let ollamaUrl = 'http://localhost:11434';
+    let isConnected = false;
 
     function init() {
         loadAPISettings();
         attachEventListeners();
+        updateConnectionStatus('disconnected', 'Not Connected');
     }
 
     function attachEventListeners() {
         document.getElementById('apiProvider')?.addEventListener('change', (e) => {
             apiProvider = e.target.value;
             saveAPISettings();
+            updateConnectionStatus('disconnected', 'Not Connected');
         });
 
         document.getElementById('apiKey')?.addEventListener('change', (e) => {
             apiKey = e.target.value;
             saveAPISettings();
+            updateConnectionStatus('disconnected', 'Not Connected');
         });
+
+        document.getElementById('testConnectionBtn')?.addEventListener('click', testConnection);
+    }
+
+    function updateConnectionStatus(status, message) {
+        const indicator = document.getElementById('connectionIndicator');
+        const statusText = document.getElementById('connectionStatus');
+        
+        if (indicator) {
+            indicator.className = 'connection-indicator ' + status;
+        }
+        
+        if (statusText) {
+            statusText.textContent = message;
+        }
+        
+        isConnected = (status === 'connected');
+    }
+
+    async function testConnection() {
+        const btn = document.getElementById('testConnectionBtn');
+        if (btn) btn.disabled = true;
+        
+        updateConnectionStatus('testing', 'Testing...');
+
+        try {
+            switch(apiProvider) {
+                case 'ollama':
+                    await testOllamaConnection();
+                    break;
+                case 'claude':
+                    await testClaudeConnection();
+                    break;
+                case 'openai':
+                    await testOpenAIConnection();
+                    break;
+            }
+        } catch (error) {
+            updateConnectionStatus('disconnected', 'Connection Failed');
+            if (window.ChatModule) {
+                window.ChatModule.addSystemMessage(`❌ Connection test failed: ${error.message}`);
+            }
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    async function testOllamaConnection() {
+        try {
+            const response = await fetch(`${ollamaUrl}/api/tags`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) {
+                throw new Error('Ollama not responding. Make sure it\'s running: ollama serve');
+            }
+
+            const data = await response.json();
+            if (data.models && data.models.length > 0) {
+                updateConnectionStatus('connected', `✅ Ollama Connected (${data.models.length} models)`);
+                if (window.ChatModule) {
+                    window.ChatModule.addSystemMessage(`✅ Connected to Ollama! Available models: ${data.models.map(m => m.name).join(', ')}`);
+                }
+            } else {
+                updateConnectionStatus('disconnected', 'No Ollama models found');
+                if (window.ChatModule) {
+                    window.ChatModule.addSystemMessage('⚠️ Ollama connected but no models installed. Run: ollama pull llama3.1:latest');
+                }
+            }
+        } catch (error) {
+            throw new Error('Ollama not running. Start it with: ollama serve');
+        }
+    }
+
+    async function testClaudeConnection() {
+        if (!apiKey) {
+            throw new Error('Claude API key required');
+        }
+
+        try {
+            // Test with a minimal request
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 10,
+                    messages: [{ role: 'user', content: 'hi' }]
+                })
+            });
+
+            if (response.status === 401) {
+                throw new Error('Invalid API key');
+            }
+
+            if (response.status === 429) {
+                throw new Error('Rate limit exceeded');
+            }
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            updateConnectionStatus('connected', '✅ Claude Connected');
+            if (window.ChatModule) {
+                window.ChatModule.addSystemMessage('✅ Successfully connected to Claude API!');
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async function testOpenAIConnection() {
+        if (!apiKey) {
+            throw new Error('OpenAI API key required');
+        }
+
+        try {
+            const response = await fetch('https://api.openai.com/v1/models', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            });
+
+            if (response.status === 401) {
+                throw new Error('Invalid API key');
+            }
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            updateConnectionStatus('connected', '✅ OpenAI Connected');
+            if (window.ChatModule) {
+                window.ChatModule.addSystemMessage('✅ Successfully connected to OpenAI API!');
+            }
+        } catch (error) {
+            throw error;
+        }
     }
 
     function saveAPISettings() {
@@ -41,24 +190,39 @@ const APIModule = (function() {
     }
 
     async function sendMessage(messages, isInGame = true) {
+        // Auto-update connection status when sending
+        updateConnectionStatus('testing', 'Sending...');
+        
         const character = window.CharacterModule.getCurrentCharacter();
         const systemPrompt = generateSystemPrompt(character, isInGame);
 
-        switch(apiProvider) {
-            case 'ollama':
-                return await sendToOllama([
-                    { role: 'system', content: systemPrompt },
-                    ...messages
-                ]);
-            case 'claude':
-                return await sendToClaude(systemPrompt, messages);
-            case 'openai':
-                return await sendToOpenAI([
-                    { role: 'system', content: systemPrompt },
-                    ...messages
-                ]);
-            default:
-                throw new Error('Unknown API provider');
+        try {
+            let response;
+            switch(apiProvider) {
+                case 'ollama':
+                    response = await sendToOllama([
+                        { role: 'system', content: systemPrompt },
+                        ...messages
+                    ]);
+                    break;
+                case 'claude':
+                    response = await sendToClaude(systemPrompt, messages);
+                    break;
+                case 'openai':
+                    response = await sendToOpenAI([
+                        { role: 'system', content: systemPrompt },
+                        ...messages
+                    ]);
+                    break;
+                default:
+                    throw new Error('Unknown API provider');
+            }
+            
+            updateConnectionStatus('connected', '✅ Connected');
+            return response;
+        } catch (error) {
+            updateConnectionStatus('disconnected', 'Connection Failed');
+            throw error;
         }
     }
 
@@ -162,7 +326,8 @@ Current Character:
 
     return {
         init,
-        sendMessage
+        sendMessage,
+        testConnection
     };
 })();
 
