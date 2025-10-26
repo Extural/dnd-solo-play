@@ -4,2631 +4,425 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D&D Solo Play - AI Dungeon Master</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e0e0e0;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .container {
-            display: grid;
-            grid-template-columns: 320px 1fr 320px;
-            grid-template-rows: auto 1fr;
-            height: 100vh;
-            gap: 10px;
-            padding: 10px;
-        }
-
-        .header {
-            grid-column: 1 / -1;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .header h1 {
-            color: #ffd700;
-            font-size: 24px;
-        }
-
-        .api-config {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .api-config select {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ffd700;
-            background: #2a2a4e;
-            color: #ffffff;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .api-config select option {
-            background: #1a1a2e;
-            color: #ffffff;
-            padding: 10px;
-        }
-
-        .api-config select:hover {
-            background: #3a3a5e;
-        }
-
-        .api-config input {
-            padding: 8px;
-            border-radius: 4px;
-            border: none;
-            background: rgba(255, 255, 255, 0.1);
-            color: #e0e0e0;
-            width: 250px;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 6px 12px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.05);
-            font-size: 12px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #dc3545;
-        }
-
-        .status-dot.connected {
-            background: #28a745;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .panel {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 15px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .panel h2 {
-            color: #ffd700;
-            margin-bottom: 15px;
-            font-size: 18px;
-            border-bottom: 2px solid #ffd700;
-            padding-bottom: 5px;
-        }
-
-        .panel h3 {
-            color: #ffd700;
-            font-size: 14px;
-            margin: 15px 0 10px 0;
-            text-transform: uppercase;
-        }
-
-        .left-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .character-sheet {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .adventure-journal {
-            flex: 0 0 auto;
-            max-height: 300px;
-        }
-
-        .stat-group {
-            margin-bottom: 15px;
-        }
-
-        .stat-group label {
-            display: block;
-            color: #ffd700;
-            margin-bottom: 5px;
-            font-size: 12px;
-            text-transform: uppercase;
-        }
-
-        .stat-group input, .stat-group textarea, .stat-group select {
-            width: 100%;
-            padding: 8px;
-            border-radius: 4px;
-            border: none;
-            background: rgba(255, 255, 255, 0.1);
-            color: #e0e0e0;
-            font-family: inherit;
-        }
-
-        .stat-group textarea {
-            resize: vertical;
-            min-height: 60px;
-        }
-
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-
-        .abilities {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-
-        .ability {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 8px;
-            border-radius: 4px;
-            text-align: center;
-        }
-
-        .ability label {
-            font-size: 10px;
-            color: #ffd700;
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .ability input {
-            width: 100%;
-            text-align: center;
-            padding: 4px;
-        }
-
-        .quest-list, .npc-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .quest-item, .npc-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-
-        .quest-item::before {
-            content: "• ";
-            color: #ffd700;
-        }
-
-        .npc-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .npc-name {
-            font-weight: bold;
-            color: #ffd700;
-        }
-
-        .chat-area {
-            grid-column: 2;
-            grid-row: 2 / 3;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .message {
-            padding: 12px;
-            border-radius: 8px;
-            max-width: 80%;
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message.dm {
-            background: rgba(139, 69, 19, 0.3);
-            align-self: flex-start;
-            border-left: 3px solid #8b4513;
-        }
-
-        .message.player.ingame {
-            background: rgba(25, 135, 84, 0.3);
-            border-right: 3px solid #198754;
-        }
-
-        .message.player.outgame {
-            background: rgba(13, 110, 253, 0.3);
-            border-right: 3px solid #0d6efd;
-        }
-
-        .message.system {
-            background: rgba(108, 117, 125, 0.3);
-            align-self: center;
-            font-style: italic;
-            text-align: center;
-            max-width: 60%;
-            font-size: 13px;
-        }
-
-        .message-sender {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #ffd700;
-        }
-
-        .input-area {
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-
-        .chat-mode-toggle {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding: 5px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
-        }
-
-        .mode-btn {
-            flex: 1;
-            padding: 8px;
-            border: none;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #999;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: bold;
-        }
-
-        .mode-btn.active {
-            background: #ffd700;
-            color: #1a1a2e;
-        }
-
-        .mode-btn:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.2);
-            color: #e0e0e0;
-        }
-
-        .input-label {
-            font-size: 12px;
-            color: #ffd700;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .input-group input {
-            flex: 1;
-            padding: 12px;
-            border-radius: 4px;
-            border: none;
-            background: rgba(255, 255, 255, 0.1);
-            color: #e0e0e0;
-            font-size: 14px;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border-radius: 4px;
-            border: none;
-            background: #ffd700;
-            color: #1a1a2e;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn:hover:not(:disabled) {
-            background: #ffed4e;
-            transform: translateY(-2px);
-        }
-
-        .btn:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.2);
-            color: #e0e0e0;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .right-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .dice-roller {
-            flex: 0 0 auto;
-        }
-
-        .dice-buttons {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .dice-btn {
-            padding: 10px;
-            border-radius: 4px;
-            border: none;
-            background: rgba(255, 215, 0, 0.2);
-            color: #ffd700;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .dice-btn:hover {
-            background: rgba(255, 215, 0, 0.4);
-            transform: scale(1.05);
-        }
-
-        .custom-roll {
-            display: flex;
-            gap: 5px;
-            margin-top: 10px;
-        }
-
-        .custom-roll input {
-            flex: 1;
-            padding: 8px;
-            border-radius: 4px;
-            border: none;
-            background: rgba(255, 255, 255, 0.1);
-            color: #e0e0e0;
-        }
-
-        .roll-result {
-            background: rgba(255, 215, 0, 0.1);
-            padding: 15px;
-            border-radius: 4px;
-            text-align: center;
-            margin-top: 10px;
-            border: 2px solid #ffd700;
-        }
-
-        .roll-result .total {
-            font-size: 32px;
-            font-weight: bold;
-            color: #ffd700;
-        }
-
-        .roll-result .details {
-            font-size: 12px;
-            margin-top: 5px;
-            color: #aaa;
-        }
-
-        .initiative-tracker {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .initiative-controls {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-
-        .initiative-controls input {
-            flex: 1;
-            padding: 8px;
-            border-radius: 4px;
-            border: none;
-            background: rgba(255, 255, 255, 0.1);
-            color: #e0e0e0;
-        }
-
-        .initiative-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .initiative-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .initiative-item.active {
-            background: rgba(255, 215, 0, 0.3);
-            border: 2px solid #ffd700;
-        }
-
-        .initiative-item .name {
-            font-weight: bold;
-        }
-
-        .initiative-item .roll {
-            color: #ffd700;
-            font-size: 18px;
-            margin: 0 10px;
-        }
-
-        .initiative-item .remove {
-            background: rgba(220, 53, 69, 0.5);
-            border: none;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 2px solid #ffd700;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s linear infinite;
-            margin-left: 10px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-
-        .session-info {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-bottom: 10px;
-        }
-
-        .session-info div {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-
-        .empty-state {
-            color: #888;
-            font-style: italic;
-            font-size: 13px;
-            text-align: center;
-            padding: 20px;
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 215, 0, 0.3);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 215, 0, 0.5);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #1a1a2e;
-            padding: 30px;
-            border-radius: 8px;
-            max-width: 500px;
-            width: 90%;
-            border: 2px solid #ffd700;
-        }
-
-        .modal-content h2 {
-            color: #ffd700;
-            margin-bottom: 20px;
-        }
-
-        .modal-content .action-buttons {
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-
-        .char-creation-wizard {
-            max-width: 600px;
-        }
-
-        .creation-step {
-            display: none;
-        }
-
-        .creation-step.active {
-            display: block;
-        }
-
-        .step-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .step-number {
-            background: #ffd700;
-            color: #1a1a2e;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-
-        .ability-roller {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .ability-roll-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .ability-roll-item label {
-            display: block;
-            color: #ffd700;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .ability-roll-item .roll-value {
-            font-size: 32px;
-            color: #ffd700;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        .ability-roll-item .roll-details {
-            font-size: 12px;
-            color: #999;
-        }
-
-        .skill-selector {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 15px 0;
-        }
-
-        .skill-option {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .skill-option:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .skill-option.selected {
-            background: rgba(255, 215, 0, 0.3);
-            border: 2px solid #ffd700;
-        }
-
-        .skill-option input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-        }
-
-        .hp-roller {
-            text-align: center;
-            padding: 20px;
-        }
-
-        .hp-result {
-            font-size: 48px;
-            color: #ffd700;
-            font-weight: bold;
-            margin: 20px 0;
-        }
-
-        .stat-summary {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-        }
-
-        .stat-summary h4 {
-            color: #ffd700;
-            margin-bottom: 10px;
-        }
-
-        .stat-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            font-size: 14px;
-        }
-
-        .wizard-nav {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-
-        .roll-all-btn {
-            background: rgba(255, 215, 0, 0.2);
-            color: #ffd700;
-            border: 2px solid #ffd700;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        .roll-all-btn:hover {
-            background: rgba(255, 215, 0, 0.4);
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <!-- Header -->
     <div class="container">
-        <div class="header">
-            <h1>⚔️ D&D Solo Play</h1>
+        <header class="header">
+            <h1>🎲 D&D Solo Play</h1>
             <div class="api-config">
                 <select id="apiProvider">
-                    <option value="claude">Claude (Anthropic)</option>
                     <option value="ollama">Ollama (Local)</option>
+                    <option value="claude">Claude (Anthropic)</option>
                     <option value="openai">OpenAI (GPT)</option>
                 </select>
-                <input type="password" id="apiKey" placeholder="API key (leave empty for Ollama)">
-                <input type="text" id="ollamaUrl" placeholder="Ollama URL" value="http://localhost:11434" style="display:none;">
-                <input type="text" id="ollamaModel" placeholder="Model name" value="llama3.1" style="display:none;">
-                <button class="btn btn-sm" onclick="saveApiConfig()">Save</button>
-                <div class="status-indicator">
-                    <div class="status-dot" id="statusDot"></div>
-                    <span id="statusText">Not configured</span>
-                </div>
+                <input type="password" id="apiKey" placeholder="API Key (if needed)">
             </div>
-        </div>
+        </header>
 
-        <div class="left-panel">
-            <div class="panel character-sheet">
-                <h2>📜 Character Sheet</h2>
-                <div class="stat-group">
-                    <label>Character Name</label>
-                    <input type="text" id="charName" placeholder="Enter name" onchange="saveCharacter()">
-                </div>
-                <div class="stat-grid">
-                    <div class="stat-group">
-                        <label>Class</label>
-                        <input type="text" id="charClass" placeholder="Fighter" onchange="saveCharacter()">
-                    </div>
-                    <div class="stat-group">
-                        <label>Level</label>
-                        <input type="number" id="charLevel" value="1" min="1" max="20" onchange="saveCharacter()">
-                    </div>
-                    <div class="stat-group">
-                        <label>Race</label>
-                        <input type="text" id="charRace" placeholder="Human" onchange="saveCharacter()">
-                    </div>
-                    <div class="stat-group">
-                        <label>HP</label>
-                        <input type="text" id="charHP" placeholder="12/12" onchange="saveCharacter()">
-                    </div>
-                    <div class="stat-group">
-                        <label>AC</label>
-                        <input type="number" id="charAC" placeholder="15" onchange="saveCharacter()">
-                    </div>
-                    <div class="stat-group">
-                        <label>Speed</label>
-                        <input type="text" id="charSpeed" placeholder="30 ft" onchange="saveCharacter()">
-                    </div>
-                </div>
-                
-                <h3>Ability Scores</h3>
-                <div class="abilities">
-                    <div class="ability">
-                        <label>STR</label>
-                        <input type="number" id="str" value="10" onchange="saveCharacter()">
-                    </div>
-                    <div class="ability">
-                        <label>DEX</label>
-                        <input type="number" id="dex" value="10" onchange="saveCharacter()">
-                    </div>
-                    <div class="ability">
-                        <label>CON</label>
-                        <input type="number" id="con" value="10" onchange="saveCharacter()">
-                    </div>
-                    <div class="ability">
-                        <label>INT</label>
-                        <input type="number" id="int" value="10" onchange="saveCharacter()">
-                    </div>
-                    <div class="ability">
-                        <label>WIS</label>
-                        <input type="number" id="wis" value="10" onchange="saveCharacter()">
-                    </div>
-                    <div class="ability">
-                        <label>CHA</label>
-                        <input type="number" id="cha" value="10" onchange="saveCharacter()">
-                    </div>
-                </div>
+        <!-- Character Sheet Panel -->
+        <aside class="panel character-sheet">
+            <h2>Character Sheet</h2>
+            
+            <div class="stat-group">
+                <label>Name:</label>
+                <input type="text" id="charName" placeholder="Character Name">
+            </div>
 
-                <div class="stat-group">
-                    <label>Equipment & Items</label>
-                    <textarea id="charEquipment" placeholder="Longsword, Shield, Leather Armor..." onchange="saveCharacter()"></textarea>
-                </div>
+            <div class="stat-group">
+                <label>Race:</label>
+                <input type="text" id="charRace" placeholder="Race" readonly>
+            </div>
 
-                <div class="stat-group">
-                    <label>Features & Abilities</label>
-                    <textarea id="charFeatures" placeholder="Second Wind, Action Surge..." onchange="saveCharacter()"></textarea>
-                </div>
+            <div class="stat-group">
+                <label>Class:</label>
+                <input type="text" id="charClass" placeholder="Class" readonly>
+            </div>
 
-                <div class="action-buttons">
-                    <button class="btn btn-sm" onclick="openCharCreation()">Create Character</button>
-                    <button class="btn btn-sm" onclick="newAdventure()">New Adventure</button>
-                    <button class="btn btn-sm btn-secondary" onclick="saveGame()">Save Game</button>
-                    <button class="btn btn-sm btn-secondary" onclick="loadGame()">Load Game</button>
+            <div class="stat-group">
+                <label>Level:</label>
+                <input type="number" id="charLevel" value="1" min="1" max="20" readonly>
+            </div>
+
+            <div class="stat-group">
+                <label>HP:</label>
+                <input type="number" id="hp" value="0" style="width: 48%; display: inline-block;">
+                <input type="number" id="maxHp" value="0" placeholder="Max" style="width: 48%; display: inline-block; margin-left: 2%;" readonly>
+            </div>
+
+            <div class="stat-group">
+                <label>AC:</label>
+                <input type="number" id="ac" value="10" readonly>
+            </div>
+
+            <h3 style="color: #ffd700; margin-top: 20px;">Abilities</h3>
+            <div class="ability-scores">
+                <div class="ability-score">
+                    <label>STR</label>
+                    <input type="number" id="strength" value="10" readonly>
+                    <span id="strengthMod">+0</span>
+                </div>
+                <div class="ability-score">
+                    <label>DEX</label>
+                    <input type="number" id="dexterity" value="10" readonly>
+                    <span id="dexterityMod">+0</span>
+                </div>
+                <div class="ability-score">
+                    <label>CON</label>
+                    <input type="number" id="constitution" value="10" readonly>
+                    <span id="constitutionMod">+0</span>
+                </div>
+                <div class="ability-score">
+                    <label>INT</label>
+                    <input type="number" id="intelligence" value="10" readonly>
+                    <span id="intelligenceMod">+0</span>
+                </div>
+                <div class="ability-score">
+                    <label>WIS</label>
+                    <input type="number" id="wisdom" value="10" readonly>
+                    <span id="wisdomMod">+0</span>
+                </div>
+                <div class="ability-score">
+                    <label>CHA</label>
+                    <input type="number" id="charisma" value="10" readonly>
+                    <span id="charismaMod">+0</span>
                 </div>
             </div>
 
-            <div class="panel adventure-journal">
-                <h2>📖 Adventure Journal</h2>
-                <div class="session-info">
-                    <div>
-                        <span>Current Chapter:</span>
-                        <span id="currentChapter">Not started</span>
-                    </div>
-                    <div>
-                        <span>Messages:</span>
-                        <span id="messageCount">0</span>
-                    </div>
-                    <div>
-                        <span>Session:</span>
-                        <span id="sessionNumber">0</span>
-                    </div>
-                </div>
-
-                <h3>Active Quests</h3>
-                <div class="quest-list" id="questList">
-                    <div class="empty-state">No active quests</div>
-                </div>
-
-                <h3>Key NPCs</h3>
-                <div class="npc-list" id="npcList">
-                    <div class="empty-state">No NPCs met yet</div>
-                </div>
-
-                <div class="action-buttons">
-                    <button class="btn btn-sm btn-secondary" onclick="createCheckpoint()">Create Checkpoint</button>
-                    <button class="btn btn-sm btn-secondary" onclick="viewHistory()">View History</button>
-                </div>
+            <h3 style="color: #ffd700; margin-top: 20px;">Quick Rolls</h3>
+            <div class="quick-rolls">
+                <button class="quick-roll-btn" data-ability="strength">STR</button>
+                <button class="quick-roll-btn" data-ability="dexterity">DEX</button>
+                <button class="quick-roll-btn" data-ability="constitution">CON</button>
+                <button class="quick-roll-btn" data-ability="intelligence">INT</button>
+                <button class="quick-roll-btn" data-ability="wisdom">WIS</button>
+                <button class="quick-roll-btn" data-ability="charisma">CHA</button>
             </div>
-        </div>
 
-        <div class="panel chat-area">
-            <div class="messages" id="messages">
+            <button id="createCharacterBtn" class="btn btn-primary" style="width: 100%; margin-top: 20px;">
+                Create Character
+            </button>
+        </aside>
+
+        <!-- Chat Area -->
+        <main class="chat-container">
+            <!-- Chat Mode Toggle -->
+            <div class="chat-mode-toggle">
+                <button id="inGameModeBtn" class="mode-btn active">🎭 In-Game</button>
+                <button id="outGameModeBtn" class="mode-btn">💬 Out-of-Game</button>
+            </div>
+
+            <!-- Messages -->
+            <div id="chatMessages" class="chat-messages">
                 <div class="message system">
-                    <div class="message-content">Welcome to D&D Solo Play! Configure your AI provider above, then describe what kind of adventure you'd like or just say "Surprise me!" to begin.</div>
+                    Welcome to D&D Solo Play! Create your character and begin your adventure.
                 </div>
             </div>
+
+            <!-- Input Area -->
             <div class="input-area">
-                <div class="chat-mode-toggle">
-                    <button class="mode-btn active" id="inGameBtn" onclick="setChatMode('ingame')">
-                        🎭 In-Game (Character Actions)
-                    </button>
-                    <button class="mode-btn" id="outGameBtn" onclick="setChatMode('outgame')">
-                        💬 Out-of-Game (Ask DM)
-                    </button>
-                </div>
-                <div class="input-label" id="inputLabel">Speaking/Acting as your character</div>
-                <div class="input-group">
-                    <input type="text" id="playerInput" placeholder="I draw my sword and approach cautiously..." onkeypress="handleKeyPress(event)">
-                    <button class="btn" onclick="sendMessage()" id="sendBtn">Send</button>
+                <textarea id="userInput" placeholder="What does your character do or say?"></textarea>
+                <div class="input-buttons">
+                    <button id="sendBtn" class="send-btn">Send</button>
                 </div>
             </div>
-        </div>
+        </main>
 
-        <div class="right-panel">
-            <div class="panel dice-roller">
-                <h2>🎲 Dice Roller</h2>
-                
-                <h3 style="font-size: 12px; margin: 10px 0 5px 0;">Quick Rolls (with modifiers)</h3>
+        <!-- Tools Panel -->
+        <aside class="panel tools-panel">
+            <h2>Tools</h2>
+
+            <!-- Dice Roller -->
+            <div class="tool-section">
+                <h3>Dice Roller</h3>
                 <div class="dice-buttons">
-                    <button class="dice-btn" onclick="quickRoll('strength')" title="STR Check/Save">STR</button>
-                    <button class="dice-btn" onclick="quickRoll('dexterity')" title="DEX Check/Save">DEX</button>
-                    <button class="dice-btn" onclick="quickRoll('constitution')" title="CON Check/Save">CON</button>
-                    <button class="dice-btn" onclick="quickRoll('intelligence')" title="INT Check/Save">INT</button>
-                    <button class="dice-btn" onclick="quickRoll('wisdom')" title="WIS Check/Save">WIS</button>
-                    <button class="dice-btn" onclick="quickRoll('charisma')" title="CHA Check/Save">CHA</button>
-                    <button class="dice-btn" onclick="quickRoll('initiative')" title="Initiative Roll">INIT</button>
+                    <button class="dice-btn" data-dice="1d4">d4</button>
+                    <button class="dice-btn" data-dice="1d6">d6</button>
+                    <button class="dice-btn" data-dice="1d8">d8</button>
+                    <button class="dice-btn" data-dice="1d10">d10</button>
+                    <button class="dice-btn" data-dice="1d12">d12</button>
+                    <button class="dice-btn" data-dice="1d20">d20</button>
+                    <button class="dice-btn" data-dice="1d100">d100</button>
                 </div>
-                
-                <h3 style="font-size: 12px; margin: 10px 0 5px 0;">Basic Dice</h3>
-                <div class="dice-buttons">
-                    <button class="dice-btn" onclick="rollDice(4)">d4</button>
-                    <button class="dice-btn" onclick="rollDice(6)">d6</button>
-                    <button class="dice-btn" onclick="rollDice(8)">d8</button>
-                    <button class="dice-btn" onclick="rollDice(10)">d10</button>
-                    <button class="dice-btn" onclick="rollDice(12)">d12</button>
-                    <button class="dice-btn" onclick="rollDice(20)">d20</button>
-                    <button class="dice-btn" onclick="rollDice(100)">d100</button>
-                </div>
-                <div class="custom-roll">
-                    <input type="text" id="customDice" placeholder="2d6+3">
-                    <button class="btn btn-sm" onclick="rollCustom()">Roll</button>
-                </div>
-                <div id="rollResult"></div>
+                <div id="diceResult" class="dice-result" style="display: none;"></div>
             </div>
 
-            <div class="panel initiative-tracker">
-                <h2>⚔️ Initiative Tracker</h2>
+            <!-- Initiative Tracker -->
+            <div class="tool-section">
+                <h3>Initiative Tracker</h3>
+                <ul id="initiativeList" class="initiative-list"></ul>
                 <div class="initiative-controls">
-                    <input type="text" id="initName" placeholder="Name">
-                    <input type="number" id="initRoll" placeholder="Roll">
-                    <button class="btn btn-sm" onclick="addInitiative()">Add</button>
-                </div>
-                <div class="action-buttons" style="margin-bottom: 10px;">
-                    <button class="btn btn-sm" onclick="nextTurn()">Next Turn</button>
-                    <button class="btn btn-sm btn-secondary" onclick="sortInitiative()">Sort</button>
-                    <button class="btn btn-sm btn-secondary" onclick="clearInitiative()">Clear</button>
-                </div>
-                <div class="initiative-list" id="initiativeList">
-                    <div class="empty-state">No combatants in initiative</div>
+                    <button id="addCombatantBtn">Add</button>
+                    <button id="nextTurnBtn">Next</button>
+                    <button id="resetInitiativeBtn">Reset</button>
                 </div>
             </div>
-        </div>
+
+            <!-- Save/Load -->
+            <div class="tool-section">
+                <h3>Game</h3>
+                <button id="saveGameBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">
+                    Save Game
+                </button>
+                <button id="loadGameBtn" class="btn btn-secondary" style="width: 100%;">
+                    Load Game
+                </button>
+            </div>
+        </aside>
     </div>
 
-    <!-- Adventure Setup Modal -->
-    <div class="modal" id="adventureModal">
+    <!-- Character Creation Modal -->
+    <div id="charCreationModal" class="modal">
         <div class="modal-content">
-            <h2>🎲 Start New Adventure</h2>
-            <div class="stat-group">
-                <label>Adventure Type</label>
-                <select id="adventureType">
-                    <option value="surprise">Surprise Me!</option>
-                    <option value="dungeon">Classic Dungeon Crawl</option>
-                    <option value="mystery">Murder Mystery</option>
-                    <option value="intrigue">Political Intrigue</option>
-                    <option value="wilderness">Wilderness Survival</option>
-                    <option value="heist">Heist/Caper</option>
-                    <option value="rescue">Rescue Mission</option>
-                    <option value="exploration">Exploration</option>
-                    <option value="sandbox">Sandbox (Total Freedom)</option>
-                    <option value="custom">Custom (I'll describe it)</option>
-                </select>
-            </div>
-            <div class="stat-group">
-                <label>Starting Location</label>
-                <input type="text" id="startLocation" placeholder="e.g., Coastal town, Ancient ruins, Capital city...">
-            </div>
-            <div class="stat-group">
-                <label>Tone</label>
-                <select id="adventureTone">
-                    <option value="balanced">Balanced</option>
-                    <option value="serious">Serious/Dark</option>
-                    <option value="heroic">Heroic/Epic</option>
-                    <option value="comedic">Light/Comedic</option>
-                    <option value="horror">Horror</option>
-                </select>
-            </div>
-            <div class="stat-group">
-                <label>Length</label>
-                <select id="adventureLength">
-                    <option value="oneshot">One-Shot (1-2 sessions)</option>
-                    <option value="short">Short Arc (3-5 sessions)</option>
-                    <option value="campaign">Full Campaign</option>
-                </select>
-            </div>
-            <div class="action-buttons">
-                <button class="btn btn-secondary" onclick="closeAdventureModal()">Cancel</button>
-                <button class="btn" onclick="startNewAdventure()">Start Adventure!</button>
-            </div>
-        </div>
-    </div>
+            <h2>Create Your Character</h2>
 
-    <!-- Character Creation Wizard -->
-    <div class="modal" id="charCreationModal">
-        <div class="modal-content char-creation-wizard">
             <!-- Step 1: Race & Class -->
-            <div class="creation-step active" id="step1">
+            <div id="step1" class="creation-step active">
                 <div class="step-header">
                     <div class="step-number">1</div>
-                    <h2>Race & Class</h2>
-                </div>
-                
-                <div class="stat-group">
-                    <label>Race</label>
-                    <select id="newRace">
-                        <option value="">Select Race</option>
-                        <option value="Human">Human</option>
-                        <option value="Elf">Elf</option>
-                        <option value="Dwarf">Dwarf</option>
-                        <option value="Halfling">Halfling</option>
-                        <option value="Dragonborn">Dragonborn</option>
-                        <option value="Gnome">Gnome</option>
-                        <option value="Half-Elf">Half-Elf</option>
-                        <option value="Half-Orc">Half-Orc</option>
-                        <option value="Tiefling">Tiefling</option>
-                    </select>
+                    <h3>Choose Race & Class</h3>
                 </div>
 
-                <div class="stat-group">
-                    <label>Class</label>
-                    <select id="newClass" onchange="updateSubclasses()">
-                        <option value="">Select Class</option>
-                        <option value="Barbarian">Barbarian</option>
-                        <option value="Bard">Bard</option>
-                        <option value="Cleric">Cleric</option>
-                        <option value="Druid">Druid</option>
-                        <option value="Fighter">Fighter</option>
-                        <option value="Monk">Monk</option>
-                        <option value="Paladin">Paladin</option>
-                        <option value="Ranger">Ranger</option>
-                        <option value="Rogue">Rogue</option>
-                        <option value="Sorcerer">Sorcerer</option>
-                        <option value="Warlock">Warlock</option>
-                        <option value="Wizard">Wizard</option>
-                    </select>
+                <div class="form-group">
+                    <label>Race:</label>
+                    <select id="creationRace"></select>
                 </div>
 
-                <div class="stat-group" id="subclassGroup" style="display:none;">
-                    <label>Subclass</label>
-                    <select id="newSubclass"></select>
+                <div class="form-group">
+                    <label>Class:</label>
+                    <select id="creationClass"></select>
                 </div>
 
-                <div class="stat-group">
-                    <label>Background</label>
-                    <select id="newBackground">
-                        <option value="">Select Background</option>
-                        <option value="Acolyte">Acolyte</option>
-                        <option value="Charlatan">Charlatan</option>
-                        <option value="Criminal">Criminal</option>
-                        <option value="Entertainer">Entertainer</option>
-                        <option value="Folk Hero">Folk Hero</option>
-                        <option value="Guild Artisan">Guild Artisan</option>
-                        <option value="Hermit">Hermit</option>
-                        <option value="Noble">Noble</option>
-                        <option value="Outlander">Outlander</option>
-                        <option value="Sage">Sage</option>
-                        <option value="Sailor">Sailor</option>
-                        <option value="Soldier">Soldier</option>
-                        <option value="Urchin">Urchin</option>
-                    </select>
+                <div class="form-group">
+                    <label>Subclass (Optional):</label>
+                    <select id="creationSubclass"></select>
                 </div>
 
-                <div class="stat-group">
-                    <label>Level</label>
-                    <select id="newLevel">
-                        <option value="1" selected>1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                        <option value="9">9</option>
-                        <option value="10">10</option>
-                    </select>
+                <div class="form-group">
+                    <label>Background:</label>
+                    <select id="creationBackground"></select>
                 </div>
 
-                <div class="wizard-nav">
-                    <button class="btn btn-secondary" onclick="closeCharCreation()">Cancel</button>
-                    <button class="btn" onclick="nextStep(2)">Next: Abilities</button>
+                <div class="form-group">
+                    <label>Level:</label>
+                    <input type="number" id="creationLevel" value="1" min="1" max="10">
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="CharacterModule.closeCharacterCreator()">Cancel</button>
+                    <button class="btn btn-primary" onclick="CharacterModule.nextStep()">Next</button>
                 </div>
             </div>
 
-            <!-- Step 2: Ability Scores -->
-            <div class="creation-step" id="step2">
+            <!-- Step 2: Abilities -->
+            <div id="step2" class="creation-step">
                 <div class="step-header">
                     <div class="step-number">2</div>
-                    <h2>Ability Scores</h2>
-                    <p style="font-size:14px; color:#999;">Roll 4d6, drop lowest, reroll 1s and 2s</p>
-                    <p style="font-size:12px; color:#ffd700;">Racial bonuses will be applied automatically!</p>
+                    <h3>Roll Ability Scores</h3>
+                    <p style="color: #999; font-size: 14px;">4d6 drop lowest, reroll 1s & 2s</p>
                 </div>
 
-                <button class="roll-all-btn" onclick="rollAllAbilities()">🎲 Roll All Abilities</button>
+                <button class="btn btn-primary" style="width: 100%; margin-bottom: 20px;" onclick="CharacterModule.rollAllAbilities()">
+                    Roll All Abilities
+                </button>
 
                 <div class="ability-roller">
                     <div class="ability-roll-item">
                         <label>Strength</label>
-                        <div class="roll-value" id="rollStr">-</div>
-                        <div class="roll-details" id="rollStrDetails"></div>
-                        <button class="btn btn-sm" onclick="rollAbility('str')">Roll</button>
+                        <div class="roll-value" id="rolledStrength">-</div>
+                        <div class="roll-details" id="rolledStrengthDetails"></div>
+                        <button class="btn btn-secondary" style="margin-top: 10px;" onclick="CharacterModule.rollSingleAbility('strength')">Roll</button>
                     </div>
                     <div class="ability-roll-item">
                         <label>Dexterity</label>
-                        <div class="roll-value" id="rollDex">-</div>
-                        <div class="roll-details" id="rollDexDetails"></div>
-                        <button class="btn btn-sm" onclick="rollAbility('dex')">Roll</button>
+                        <div class="roll-value" id="rolledDexterity">-</div>
+                        <div class="roll-details" id="rolledDexterityDetails"></div>
+                        <button class="btn btn-secondary" style="margin-top: 10px;" onclick="CharacterModule.rollSingleAbility('dexterity')">Roll</button>
                     </div>
                     <div class="ability-roll-item">
                         <label>Constitution</label>
-                        <div class="roll-value" id="rollCon">-</div>
-                        <div class="roll-details" id="rollConDetails"></div>
-                        <button class="btn btn-sm" onclick="rollAbility('con')">Roll</button>
+                        <div class="roll-value" id="rolledConstitution">-</div>
+                        <div class="roll-details" id="rolledConstitutionDetails"></div>
+                        <button class="btn btn-secondary" style="margin-top: 10px;" onclick="CharacterModule.rollSingleAbility('constitution')">Roll</button>
                     </div>
                     <div class="ability-roll-item">
                         <label>Intelligence</label>
-                        <div class="roll-value" id="rollInt">-</div>
-                        <div class="roll-details" id="rollIntDetails"></div>
-                        <button class="btn btn-sm" onclick="rollAbility('int')">Roll</button>
+                        <div class="roll-value" id="rolledIntelligence">-</div>
+                        <div class="roll-details" id="rolledIntelligenceDetails"></div>
+                        <button class="btn btn-secondary" style="margin-top: 10px;" onclick="CharacterModule.rollSingleAbility('intelligence')">Roll</button>
                     </div>
                     <div class="ability-roll-item">
                         <label>Wisdom</label>
-                        <div class="roll-value" id="rollWis">-</div>
-                        <div class="roll-details" id="rollWisDetails"></div>
-                        <button class="btn btn-sm" onclick="rollAbility('wis')">Roll</button>
+                        <div class="roll-value" id="rolledWisdom">-</div>
+                        <div class="roll-details" id="rolledWisdomDetails"></div>
+                        <button class="btn btn-secondary" style="margin-top: 10px;" onclick="CharacterModule.rollSingleAbility('wisdom')">Roll</button>
                     </div>
                     <div class="ability-roll-item">
                         <label>Charisma</label>
-                        <div class="roll-value" id="rollCha">-</div>
-                        <div class="roll-details" id="rollChaDetails"></div>
-                        <button class="btn btn-sm" onclick="rollAbility('cha')">Roll</button>
+                        <div class="roll-value" id="rolledCharisma">-</div>
+                        <div class="roll-details" id="rolledCharismaDetails"></div>
+                        <button class="btn btn-secondary" style="margin-top: 10px;" onclick="CharacterModule.rollSingleAbility('charisma')">Roll</button>
                     </div>
                 </div>
 
-                <div class="wizard-nav">
-                    <button class="btn btn-secondary" onclick="prevStep(1)">Back</button>
-                    <button class="btn" onclick="nextStep(3)" id="abilitiesNext">Next: Hit Points</button>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="CharacterModule.prevStep()">Back</button>
+                    <button class="btn btn-primary" onclick="CharacterModule.nextStep()">Next</button>
                 </div>
             </div>
 
             <!-- Step 3: Hit Points -->
-            <div class="creation-step" id="step3">
+            <div id="step3" class="creation-step">
                 <div class="step-header">
                     <div class="step-number">3</div>
-                    <h2>Hit Points</h2>
+                    <h3>Hit Points</h3>
                 </div>
 
-                <div class="hp-roller">
-                    <p id="hpInstructions">Click to roll your hit points!</p>
-                    <div class="hp-result" id="hpResult">-</div>
-                    <button class="btn" onclick="rollHP()" id="rollHPBtn">Roll Hit Points</button>
-                    <p style="font-size:12px; color:#999; margin-top:15px;" id="hpFormula"></p>
+                <div style="text-align: center; margin: 40px 0;">
+                    <div style="margin-bottom: 20px;">
+                        <strong>Hit Points:</strong>
+                        <div class="roll-value" id="rolledHP">-</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="CharacterModule.rollHitPoints()">
+                        Roll Hit Points
+                    </button>
+                    <p style="color: #999; margin-top: 10px; font-size: 14px;">
+                        Level 1 gets max HP automatically<br>
+                        Higher levels roll their hit die + CON modifier
+                    </p>
                 </div>
 
-                <div class="wizard-nav">
-                    <button class="btn btn-secondary" onclick="prevStep(2)">Back</button>
-                    <button class="btn" onclick="nextStep(4)" id="hpNext" disabled>Next: Skills</button>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="CharacterModule.prevStep()">Back</button>
+                    <button class="btn btn-primary" onclick="CharacterModule.nextStep()">Next</button>
                 </div>
             </div>
 
             <!-- Step 4: Skills -->
-            <div class="creation-step" id="step4">
+            <div id="step4" class="creation-step">
                 <div class="step-header">
                     <div class="step-number">4</div>
-                    <h2>Skills & Proficiencies</h2>
-                    <p style="font-size:14px; color:#999;">Select <span id="skillCount">4</span> skills</p>
+                    <h3>Choose Skills</h3>
                 </div>
 
-                <div class="skill-selector" id="skillSelector"></div>
+                <div id="skillSelection" style="margin: 20px 0;">
+                    <p style="color: #999; margin-bottom: 15px;">Select skills based on your class</p>
+                    <div id="skillCheckboxes"></div>
+                </div>
 
-                <div class="wizard-nav">
-                    <button class="btn btn-secondary" onclick="prevStep(3)">Back</button>
-                    <button class="btn" onclick="nextStep(5)" id="skillsNext">Next: Summary</button>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="CharacterModule.prevStep()">Back</button>
+                    <button class="btn btn-primary" onclick="CharacterModule.nextStep()">Next</button>
                 </div>
             </div>
 
-            <!-- Step 5: Summary & Name -->
-            <div class="creation-step" id="step5">
+            <!-- Step 5: Finalize -->
+            <div id="step5" class="creation-step">
                 <div class="step-header">
                     <div class="step-number">5</div>
-                    <h2>Finalize Character</h2>
+                    <h3>Finalize Character</h3>
                 </div>
 
-                <div class="stat-group">
-                    <label>Character Name</label>
-                    <input type="text" id="newName" placeholder="Enter character name">
+                <div class="form-group">
+                    <label>Character Name:</label>
+                    <input type="text" id="creationName" placeholder="Enter your character's name">
                 </div>
 
-                <div class="stat-summary">
-                    <h4>Character Summary</h4>
-                    <div class="stat-summary-grid" id="charSummary"></div>
+                <div id="characterSummary" style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <h4 style="color: #ffd700; margin-bottom: 10px;">Character Summary</h4>
+                    <p id="summaryText">Complete previous steps to see your character summary.</p>
                 </div>
 
-                <div class="wizard-nav">
-                    <button class="btn btn-secondary" onclick="prevStep(4)">Back</button>
-                    <button class="btn" onclick="finalizeCharacter()">Create Character!</button>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="CharacterModule.prevStep()">Back</button>
+                    <button class="btn btn-primary" onclick="CharacterModule.finalizeCharacter()">Create Character!</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Load Data Files -->
+    <script src="data/classes.js"></script>
+    <script src="data/races.js"></script>
+    <script src="data/backgrounds.js"></script>
+
+    <!-- Load Modules -->
+    <script src="js/api.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/dice.js"></script>
+    <script src="js/initiative.js"></script>
+    <script src="js/app.js"></script>
+
     <script>
-        // Global state
-        let gameState = {
-            conversationHistory: [],
-            adventureState: {
-                chapter: 'Not started',
-                quests: [],
-                npcs: [],
-                worldState: [],
-                sessionNumber: 1,
-                messageCount: 0,
-                checkpoints: []
-            },
-            apiConfig: {
-                provider: 'claude',
-                apiKey: '',
-                ollamaUrl: 'http://localhost:11434',
-                ollamaModel: 'llama3.1'
-            },
-            initiativeOrder: [],
-            currentTurn: 0,
-            chatMode: 'ingame', // 'ingame' or 'outgame'
-            lastRollType: null // Tracks what kind of roll the DM asked for
-        };
-
-        // Chat Mode Management
-        function setChatMode(mode) {
-            gameState.chatMode = mode;
-            const inGameBtn = document.getElementById('inGameBtn');
-            const outGameBtn = document.getElementById('outGameBtn');
-            const inputLabel = document.getElementById('inputLabel');
-            const playerInput = document.getElementById('playerInput');
-            
-            if (mode === 'ingame') {
-                inGameBtn.classList.add('active');
-                outGameBtn.classList.remove('active');
-                inputLabel.textContent = '🎭 Speaking/Acting as your character';
-                playerInput.placeholder = 'I draw my sword and approach cautiously...';
-            } else {
-                outGameBtn.classList.add('active');
-                inGameBtn.classList.remove('active');
-                inputLabel.textContent = '💬 Out-of-game question or comment for the DM';
-                playerInput.placeholder = 'Can you remind me what the innkeeper said? / What are my options here?';
+        // Populate dropdowns with data when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            // Populate race dropdown
+            const raceSelect = document.getElementById('creationRace');
+            if (raceSelect && typeof DND_RACES !== 'undefined') {
+                Object.keys(DND_RACES).forEach(key => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = DND_RACES[key].name;
+                    raceSelect.appendChild(option);
+                });
             }
-        }
 
-        // Load saved state on startup
-        window.onload = function() {
-            loadApiConfig();
-            loadCharacter();
-            loadGameState();
-            updateAdventureJournal();
-            updateProviderUI();
-        };
-
-        // API Provider Management
-        function updateProviderUI() {
-            const provider = document.getElementById('apiProvider').value;
-            const apiKeyInput = document.getElementById('apiKey');
-            const ollamaUrl = document.getElementById('ollamaUrl');
-            const ollamaModel = document.getElementById('ollamaModel');
-            
-            if (provider === 'ollama') {
-                apiKeyInput.style.display = 'none';
-                ollamaUrl.style.display = 'block';
-                ollamaModel.style.display = 'block';
-                apiKeyInput.placeholder = 'Not needed for Ollama';
-            } else {
-                apiKeyInput.style.display = 'block';
-                ollamaUrl.style.display = 'none';
-                ollamaModel.style.display = 'none';
-                apiKeyInput.placeholder = provider === 'claude' ? 'sk-ant-...' : 'sk-...';
+            // Populate class dropdown
+            const classSelect = document.getElementById('creationClass');
+            if (classSelect && typeof DND_CLASSES !== 'undefined') {
+                Object.keys(DND_CLASSES).forEach(key => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = DND_CLASSES[key].name;
+                    classSelect.appendChild(option);
+                });
             }
-        }
 
-        document.getElementById('apiProvider').addEventListener('change', updateProviderUI);
+            // Populate background dropdown
+            const bgSelect = document.getElementById('creationBackground');
+            if (bgSelect && typeof DND_BACKGROUNDS !== 'undefined') {
+                Object.keys(DND_BACKGROUNDS).forEach(key => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = DND_BACKGROUNDS[key].name;
+                    bgSelect.appendChild(option);
+                });
+            }
 
-        function saveApiConfig() {
-            gameState.apiConfig.provider = document.getElementById('apiProvider').value;
-            gameState.apiConfig.apiKey = document.getElementById('apiKey').value;
-            gameState.apiConfig.ollamaUrl = document.getElementById('ollamaUrl').value;
-            gameState.apiConfig.ollamaModel = document.getElementById('ollamaModel').value;
-            
-            localStorage.setItem('dnd_api_config', JSON.stringify(gameState.apiConfig));
-            
-            testConnection();
-        }
-
-        function loadApiConfig() {
-            const saved = localStorage.getItem('dnd_api_config');
-            if (saved) {
-                gameState.apiConfig = JSON.parse(saved);
-                document.getElementById('apiProvider').value = gameState.apiConfig.provider;
-                document.getElementById('apiKey').value = gameState.apiConfig.apiKey;
-                document.getElementById('ollamaUrl').value = gameState.apiConfig.ollamaUrl;
-                document.getElementById('ollamaModel').value = gameState.apiConfig.ollamaModel;
-                updateProviderUI();
-                if (gameState.apiConfig.apiKey || gameState.apiConfig.provider === 'ollama') {
-                    testConnection();
+            // When class changes, update subclass dropdown
+            classSelect?.addEventListener('change', (e) => {
+                const subclassSelect = document.getElementById('creationSubclass');
+                if (subclassSelect && DND_CLASSES[e.target.value]) {
+                    subclassSelect.innerHTML = '<option value="">None</option>';
+                    DND_CLASSES[e.target.value].subclasses.forEach(sub => {
+                        const option = document.createElement('option');
+                        option.value = sub.id;
+                        option.textContent = sub.name;
+                        subclassSelect.appendChild(option);
+                    });
                 }
-            }
-        }
 
-        async function testConnection() {
-            const statusDot = document.getElementById('statusDot');
-            const statusText = document.getElementById('statusText');
-            
-            statusText.textContent = 'Testing...';
-            statusDot.classList.remove('connected');
-            
-            try {
-                if (gameState.apiConfig.provider === 'ollama') {
-                    const response = await fetch(`${gameState.apiConfig.ollamaUrl}/api/tags`);
-                    if (response.ok) {
-                        statusDot.classList.add('connected');
-                        statusText.textContent = `Ollama (${gameState.apiConfig.ollamaModel})`;
-                        addSystemMessage('✅ Connected to local Ollama!');
-                    } else {
-                        throw new Error('Ollama not responding');
-                    }
-                } else if (gameState.apiConfig.apiKey) {
-                    statusDot.classList.add('connected');
-                    statusText.textContent = gameState.apiConfig.provider === 'claude' ? 'Claude API' : 'OpenAI API';
-                    addSystemMessage(`✅ API key configured for ${gameState.apiConfig.provider}!`);
-                }
-            } catch (error) {
-                statusText.textContent = 'Connection failed';
-                addSystemMessage(`❌ Connection failed: ${error.message}`);
-            }
-        }
-
-        // Character Management
-        function saveCharacter() {
-            const character = {
-                name: document.getElementById('charName').value,
-                class: document.getElementById('charClass').value,
-                level: document.getElementById('charLevel').value,
-                race: document.getElementById('charRace').value,
-                hp: document.getElementById('charHP').value,
-                ac: document.getElementById('charAC').value,
-                speed: document.getElementById('charSpeed').value,
-                str: document.getElementById('str').value,
-                dex: document.getElementById('dex').value,
-                con: document.getElementById('con').value,
-                int: document.getElementById('int').value,
-                wis: document.getElementById('wis').value,
-                cha: document.getElementById('cha').value,
-                equipment: document.getElementById('charEquipment').value,
-                features: document.getElementById('charFeatures').value
-            };
-            localStorage.setItem('dnd_character', JSON.stringify(character));
-        }
-
-        function loadCharacter() {
-            const saved = localStorage.getItem('dnd_character');
-            if (saved) {
-                const character = JSON.parse(saved);
-                document.getElementById('charName').value = character.name || '';
-                document.getElementById('charClass').value = character.class || '';
-                document.getElementById('charLevel').value = character.level || '1';
-                document.getElementById('charRace').value = character.race || '';
-                document.getElementById('charHP').value = character.hp || '';
-                document.getElementById('charAC').value = character.ac || '';
-                document.getElementById('charSpeed').value = character.speed || '';
-                document.getElementById('str').value = character.str || '10';
-                document.getElementById('dex').value = character.dex || '10';
-                document.getElementById('con').value = character.con || '10';
-                document.getElementById('int').value = character.int || '10';
-                document.getElementById('wis').value = character.wis || '10';
-                document.getElementById('cha').value = character.cha || '10';
-                document.getElementById('charEquipment').value = character.equipment || '';
-                document.getElementById('charFeatures').value = character.features || '';
-            }
-        }
-
-        function getCharacterSummary() {
-            const name = document.getElementById('charName').value || 'Unknown';
-            const level = document.getElementById('charLevel').value;
-            const race = document.getElementById('charRace').value || 'Human';
-            const charClass = document.getElementById('charClass').value || 'Adventurer';
-            const hp = document.getElementById('charHP').value;
-            const ac = document.getElementById('charAC').value;
-            
-            return `${name}, Level ${level} ${race} ${charClass}. HP: ${hp}, AC: ${ac}. STR ${document.getElementById('str').value}, DEX ${document.getElementById('dex').value}, CON ${document.getElementById('con').value}, INT ${document.getElementById('int').value}, WIS ${document.getElementById('wis').value}, CHA ${document.getElementById('cha').value}.`;
-        }
-
-        function getAbilityModifier(score) {
-            return Math.floor((parseInt(score) - 10) / 2);
-        }
-
-        function getModifiers() {
-            return {
-                str: getAbilityModifier(document.getElementById('str').value),
-                dex: getAbilityModifier(document.getElementById('dex').value),
-                con: getAbilityModifier(document.getElementById('con').value),
-                int: getAbilityModifier(document.getElementById('int').value),
-                wis: getAbilityModifier(document.getElementById('wis').value),
-                cha: getAbilityModifier(document.getElementById('cha').value)
-            };
-        }
-
-        function getProficiencyBonus() {
-            const level = parseInt(document.getElementById('charLevel').value) || 1;
-            return Math.ceil(level / 4) + 1; // D&D 5e proficiency bonus
-        }
-
-        function detectRollType(message) {
-            // Detect what type of roll is needed from DM's message
-            const rollPatterns = {
-                strength: /strength|athletics|str\s+save|str\s+check/i,
-                dexterity: /dexterity|acrobatics|sleight of hand|stealth|dex\s+save|dex\s+check/i,
-                constitution: /constitution|con\s+save|con\s+check|endurance/i,
-                intelligence: /intelligence|arcana|history|investigation|nature|religion|int\s+save|int\s+check/i,
-                wisdom: /wisdom|animal handling|insight|medicine|perception|survival|wis\s+save|wis\s+check/i,
-                charisma: /charisma|deception|intimidation|performance|persuasion|cha\s+save|cha\s+check/i,
-                initiative: /initiative|roll\s+initiative/i,
-                attack: /attack|hit|strike/i
-            };
-
-            for (const [type, pattern] of Object.entries(rollPatterns)) {
-                if (pattern.test(message)) {
-                    return type;
-                }
-            }
-            return null;
-        }
-
-        function applyModifier(roll, rollType) {
-            const mods = getModifiers();
-            const profBonus = getProficiencyBonus();
-            
-            let modifier = 0;
-            let modifierText = '';
-            
-            switch(rollType) {
-                case 'strength':
-                    modifier = mods.str;
-                    modifierText = `STR ${modifier >= 0 ? '+' : ''}${modifier}`;
-                    break;
-                case 'dexterity':
-                    modifier = mods.dex;
-                    modifierText = `DEX ${modifier >= 0 ? '+' : ''}${modifier}`;
-                    break;
-                case 'constitution':
-                    modifier = mods.con;
-                    modifierText = `CON ${modifier >= 0 ? '+' : ''}${modifier}`;
-                    break;
-                case 'intelligence':
-                    modifier = mods.int;
-                    modifierText = `INT ${modifier >= 0 ? '+' : ''}${modifier}`;
-                    break;
-                case 'wisdom':
-                    modifier = mods.wis;
-                    modifierText = `WIS ${modifier >= 0 ? '+' : ''}${modifier}`;
-                    break;
-                case 'charisma':
-                    modifier = mods.cha;
-                    modifierText = `CHA ${modifier >= 0 ? '+' : ''}${modifier}`;
-                    break;
-                case 'initiative':
-                    modifier = mods.dex;
-                    modifierText = `Initiative (DEX ${modifier >= 0 ? '+' : ''}${modifier})`;
-                    break;
-                case 'attack':
-                    // For attacks, use STR or DEX (choose higher for simplicity)
-                    modifier = Math.max(mods.str, mods.dex) + profBonus;
-                    modifierText = `Attack (${modifier >= 0 ? '+' : ''}${modifier})`;
-                    break;
-                default:
-                    return { total: roll, modifier: 0, text: 'No modifier' };
-            }
-            
-            return {
-                total: roll + modifier,
-                modifier: modifier,
-                text: modifierText,
-                baseRoll: roll
-            };
-        }
-
-        // Message Handling
-        function handleKeyPress(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('playerInput');
-            const message = input.value.trim();
-            
-            if (!message) return;
-            
-            if (!gameState.apiConfig.apiKey && gameState.apiConfig.provider !== 'ollama') {
-                addSystemMessage('⚠️ Please configure your API key first!');
-                return;
-            }
-
-            // Check if message contains a roll (e.g., "I rolled 15")
-            const rollMatch = message.match(/(?:rolled|roll|got)\s+(?:a\s+)?(\d+)/i);
-            let enhancedMessage = message;
-            
-            if (rollMatch && gameState.lastRollType) {
-                const rawRoll = parseInt(rollMatch[1]);
-                const result = applyModifier(rawRoll, gameState.lastRollType);
-                
-                // Enhance the message with calculated total
-                enhancedMessage = `${message} (${result.baseRoll} + ${result.modifier} = ${result.total} total for ${result.text})`;
-                
-                addSystemMessage(`🎲 Roll detected: ${result.baseRoll} + ${result.modifier} (${result.text}) = **${result.total}**`);
-                gameState.lastRollType = null; // Clear after use
-            }
-
-            input.value = '';
-            addPlayerMessage(message); // Show original message
-            gameState.adventureState.messageCount++;
-            updateAdventureJournal();
-
-            const sendBtn = document.getElementById('sendBtn');
-            sendBtn.disabled = true;
-            sendBtn.innerHTML = 'Thinking<span class="loading"></span>';
-
-            try {
-                const response = await callAI(enhancedMessage); // Send enhanced message to AI
-                addDMMessage(response);
-                
-                // Detect if DM is asking for a roll
-                const detectedRollType = detectRollType(response);
-                if (detectedRollType) {
-                    gameState.lastRollType = detectedRollType;
-                    const mods = getModifiers();
-                    let modInfo = '';
+                // Update skill checkboxes
+                const skillDiv = document.getElementById('skillCheckboxes');
+                if (skillDiv && DND_CLASSES[e.target.value]) {
+                    const classData = DND_CLASSES[e.target.value];
+                    skillDiv.innerHTML = `<p style="margin-bottom: 10px;">Choose ${classData.skillChoices} skills:</p>`;
                     
-                    switch(detectedRollType) {
-                        case 'strength': modInfo = `STR modifier: ${mods.str >= 0 ? '+' : ''}${mods.str}`; break;
-                        case 'dexterity': modInfo = `DEX modifier: ${mods.dex >= 0 ? '+' : ''}${mods.dex}`; break;
-                        case 'constitution': modInfo = `CON modifier: ${mods.con >= 0 ? '+' : ''}${mods.con}`; break;
-                        case 'intelligence': modInfo = `INT modifier: ${mods.int >= 0 ? '+' : ''}${mods.int}`; break;
-                        case 'wisdom': modInfo = `WIS modifier: ${mods.wis >= 0 ? '+' : ''}${mods.wis}`; break;
-                        case 'charisma': modInfo = `CHA modifier: ${mods.cha >= 0 ? '+' : ''}${mods.cha}`; break;
-                        case 'initiative': modInfo = `DEX modifier: ${mods.dex >= 0 ? '+' : ''}${mods.dex}`; break;
-                    }
-                    
-                    if (modInfo) {
-                        addSystemMessage(`💡 ${modInfo} - Just tell me your d20 roll and I'll add it automatically!`);
-                    }
-                }
-                
-                // Check for automatic context summarization
-                if (shouldSummarize()) {
-                    await summarizeContext();
-                }
-            } catch (error) {
-                addSystemMessage('❌ Error: ' + error.message);
-                console.error(error);
-            } finally {
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = 'Send';
-                saveGameState();
-            }
-        }
-
-        async function callAI(userMessage) {
-            const isInGame = gameState.chatMode === 'ingame';
-            
-            const systemPrompt = `You are an expert Dungeon Master running a solo D&D 5e campaign.
-
-Player Character: ${getCharacterSummary()}
-
-Current Adventure State:
-- Chapter: ${gameState.adventureState.chapter}
-- Active Quests: ${gameState.adventureState.quests.join(', ') || 'None'}
-- Known NPCs: ${gameState.adventureState.npcs.map(n => n.name).join(', ') || 'None'}
-
-MESSAGE TYPE: ${isInGame ? 'IN-GAME ACTION/DIALOGUE' : 'OUT-OF-GAME QUESTION'}
-
-${isInGame ? `
-Your role for IN-GAME messages:
-1. Treat the player's message as something their character is saying or doing
-2. Create engaging, descriptive, immersive narration in response
-3. Follow D&D 5e rules accurately
-4. When actions require rolls, tell the player what to roll and the DC
-5. Respond to player actions with appropriate consequences
-6. Create interesting encounters, NPCs, and story moments
-7. Keep the story moving forward
-8. Be concise but vivid (2-4 paragraphs typically)
-9. Track important story elements
-
-When you introduce new quests or meet important NPCs, mention them clearly:
-- QUEST: [Quest description]
-- NPC: [Name] - [Brief description]
-- CHAPTER: [Chapter name] (when major story beats occur)
-` : `
-Your role for OUT-OF-GAME questions:
-1. This is the player asking YOU (the DM) a question, NOT their character speaking
-2. Answer helpfully and break the fourth wall
-3. Provide clarification, reminders, or meta-game guidance
-4. Explain rules, options, or story details
-5. Be friendly and helpful
-6. Keep it concise (1-2 paragraphs)
-7. Don't advance the story - just answer their question
-8. After answering, you can ask if they're ready to continue in-game
-
-Examples of out-of-game questions:
-- "What did the merchant say again?"
-- "What are my options here?"
-- "Can you remind me of the quest?"
-- "How does stealth work in this situation?"
-`}
-
-The adventure should be challenging, fun, and responsive to player choices.`;
-
-            // Add user message to history
-            gameState.conversationHistory.push({
-                role: 'user',
-                content: userMessage
-            });
-
-            let response;
-            const provider = gameState.apiConfig.provider;
-
-            if (provider === 'claude') {
-                response = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': gameState.apiConfig.apiKey,
-                        'anthropic-version': '2023-06-01'
-                    },
-                    body: JSON.stringify({
-                        model: 'claude-sonnet-4-20250514',
-                        max_tokens: 2048,
-                        system: systemPrompt,
-                        messages: gameState.conversationHistory
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Claude API Error: ${response.status} - ${errorText}`);
-                }
-
-                const data = await response.json();
-                const assistantMessage = data.content[0].text;
-                
-                gameState.conversationHistory.push({
-                    role: 'assistant',
-                    content: assistantMessage
-                });
-
-                // Parse for quest/NPC/chapter updates
-                parseAdventureUpdates(assistantMessage);
-
-                return assistantMessage;
-
-            } else if (provider === 'ollama') {
-                // Format messages for Ollama
-                const messages = [
-                    { role: 'system', content: systemPrompt },
-                    ...gameState.conversationHistory
-                ];
-
-                response = await fetch(`${gameState.apiConfig.ollamaUrl}/api/chat`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: gameState.apiConfig.ollamaModel,
-                        messages: messages,
-                        stream: false
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Ollama Error: ${response.status}`);
-                }
-
-                const data = await response.json();
-                const assistantMessage = data.message.content;
-                
-                gameState.conversationHistory.push({
-                    role: 'assistant',
-                    content: assistantMessage
-                });
-
-                parseAdventureUpdates(assistantMessage);
-
-                return assistantMessage;
-
-            } else if (provider === 'openai') {
-                const messages = [
-                    { role: 'system', content: systemPrompt },
-                    ...gameState.conversationHistory
-                ];
-
-                response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${gameState.apiConfig.apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4',
-                        messages: messages,
-                        max_tokens: 2048
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`OpenAI Error: ${response.status}`);
-                }
-
-                const data = await response.json();
-                const assistantMessage = data.choices[0].message.content;
-                
-                gameState.conversationHistory.push({
-                    role: 'assistant',
-                    content: assistantMessage
-                });
-
-                parseAdventureUpdates(assistantMessage);
-
-                return assistantMessage;
-            }
-        }
-
-        function parseAdventureUpdates(message) {
-            // Parse for quest updates
-            const questMatch = message.match(/QUEST:\s*(.+?)(?:\n|$)/i);
-            if (questMatch) {
-                const quest = questMatch[1].trim();
-                if (!gameState.adventureState.quests.includes(quest)) {
-                    gameState.adventureState.quests.push(quest);
-                    addSystemMessage(`📜 New quest: ${quest}`);
-                }
-            }
-
-            // Parse for NPC mentions
-            const npcMatch = message.match(/NPC:\s*(.+?)\s*-\s*(.+?)(?:\n|$)/i);
-            if (npcMatch) {
-                const name = npcMatch[1].trim();
-                const description = npcMatch[2].trim();
-                const existing = gameState.adventureState.npcs.find(n => n.name === name);
-                if (!existing) {
-                    gameState.adventureState.npcs.push({ name, description });
-                    addSystemMessage(`👤 New NPC met: ${name}`);
-                }
-            }
-
-            // Parse for chapter changes
-            const chapterMatch = message.match(/CHAPTER:\s*(.+?)(?:\n|$)/i);
-            if (chapterMatch) {
-                const chapter = chapterMatch[1].trim();
-                if (chapter !== gameState.adventureState.chapter) {
-                    gameState.adventureState.chapter = chapter;
-                    addSystemMessage(`📖 Chapter: ${chapter}`);
-                }
-            }
-
-            updateAdventureJournal();
-        }
-
-        function addPlayerMessage(text) {
-            const messagesDiv = document.getElementById('messages');
-            const messageDiv = document.createElement('div');
-            const mode = gameState.chatMode;
-            const modeLabel = mode === 'ingame' ? '🎭 You' : '💬 You (OOC)';
-            
-            messageDiv.className = `message player ${mode}`;
-            messageDiv.innerHTML = `<div class="message-sender">${modeLabel}</div><div class="message-content">${escapeHtml(text)}</div>`;
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        function addDMMessage(text) {
-            const messagesDiv = document.getElementById('messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message dm';
-            messageDiv.innerHTML = `<div class="message-sender">Dungeon Master</div><div class="message-content">${escapeHtml(text)}</div>`;
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        function addSystemMessage(text) {
-            const messagesDiv = document.getElementById('messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message system';
-            messageDiv.innerHTML = `<div class="message-content">${escapeHtml(text)}</div>`;
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML.replace(/\n/g, '<br>');
-        }
-
-        // Adventure Journal Management
-        function updateAdventureJournal() {
-            document.getElementById('currentChapter').textContent = gameState.adventureState.chapter;
-            document.getElementById('messageCount').textContent = gameState.adventureState.messageCount;
-            document.getElementById('sessionNumber').textContent = gameState.adventureState.sessionNumber;
-
-            // Update quests
-            const questList = document.getElementById('questList');
-            if (gameState.adventureState.quests.length === 0) {
-                questList.innerHTML = '<div class="empty-state">No active quests</div>';
-            } else {
-                questList.innerHTML = gameState.adventureState.quests
-                    .map(q => `<div class="quest-item">${escapeHtml(q)}</div>`)
-                    .join('');
-            }
-
-            // Update NPCs
-            const npcList = document.getElementById('npcList');
-            if (gameState.adventureState.npcs.length === 0) {
-                npcList.innerHTML = '<div class="empty-state">No NPCs met yet</div>';
-            } else {
-                npcList.innerHTML = gameState.adventureState.npcs
-                    .map(npc => `<div class="npc-item"><span class="npc-name">${escapeHtml(npc.name)}</span><span style="font-size:11px">${escapeHtml(npc.description)}</span></div>`)
-                    .join('');
-            }
-        }
-
-        function shouldSummarize() {
-            // Summarize based on provider context limits
-            const provider = gameState.apiConfig.provider;
-            const messageCount = gameState.conversationHistory.length;
-            
-            if (provider === 'ollama') {
-                return messageCount > 30; // More aggressive for local models
-            } else if (provider === 'claude') {
-                return messageCount > 200; // Very generous for Claude
-            } else {
-                return messageCount > 100; // Moderate for OpenAI
-            }
-        }
-
-        async function summarizeContext() {
-            addSystemMessage('💭 Creating adventure summary to preserve memory...');
-            
-            // Create a summary of the conversation
-            const recentMessages = gameState.conversationHistory.slice(-20);
-            const olderMessages = gameState.conversationHistory.slice(0, -20);
-            
-            // Simple summarization (in production, you'd call the AI to summarize)
-            const summary = {
-                role: 'user',
-                content: `[Previous adventure summary: ${gameState.adventureState.messageCount - 20} messages occurred. Key events preserved in adventure journal. Character: ${getCharacterSummary()}. Current situation continues...]`
-            };
-            
-            gameState.conversationHistory = [summary, ...recentMessages];
-            gameState.adventureState.sessionNumber++;
-            
-            addSystemMessage('✅ Adventure summary created. All key information preserved!');
-            saveGameState();
-        }
-
-        function createCheckpoint() {
-            const checkpoint = {
-                timestamp: new Date().toISOString(),
-                chapter: gameState.adventureState.chapter,
-                messageCount: gameState.adventureState.messageCount,
-                sessionNumber: gameState.adventureState.sessionNumber,
-                character: JSON.parse(localStorage.getItem('dnd_character'))
-            };
-            
-            gameState.adventureState.checkpoints.push(checkpoint);
-            saveGameState();
-            addSystemMessage(`✅ Checkpoint created at ${new Date().toLocaleString()}`);
-        }
-
-        function viewHistory() {
-            const checkpoints = gameState.adventureState.checkpoints;
-            if (checkpoints.length === 0) {
-                addSystemMessage('No checkpoints yet. Create one to mark important moments!');
-                return;
-            }
-            
-            const history = checkpoints.map((cp, i) => 
-                `Checkpoint ${i + 1}: ${cp.chapter} (${new Date(cp.timestamp).toLocaleString()})`
-            ).join('\n');
-            
-            addSystemMessage(`📚 Adventure History:\n${history}`);
-        }
-
-        // Game State Management
-        function saveGameState() {
-            const state = {
-                conversationHistory: gameState.conversationHistory,
-                adventureState: gameState.adventureState,
-                initiativeOrder: gameState.initiativeOrder,
-                currentTurn: gameState.currentTurn,
-                timestamp: new Date().toISOString()
-            };
-            localStorage.setItem('dnd_game_state', JSON.stringify(state));
-        }
-
-        function loadGameState() {
-            const saved = localStorage.getItem('dnd_game_state');
-            if (saved) {
-                const state = JSON.parse(saved);
-                gameState.conversationHistory = state.conversationHistory || [];
-                gameState.adventureState = state.adventureState || gameState.adventureState;
-                gameState.initiativeOrder = state.initiativeOrder || [];
-                gameState.currentTurn = state.currentTurn || 0;
-                
-                // Restore messages to UI
-                const messagesDiv = document.getElementById('messages');
-                messagesDiv.innerHTML = '';
-                
-                gameState.conversationHistory.forEach(msg => {
-                    if (msg.role === 'user') {
-                        addPlayerMessage(msg.content);
-                    } else if (msg.role === 'assistant') {
-                        addDMMessage(msg.content);
-                    }
-                });
-                
-                renderInitiative();
-            }
-        }
-
-        function newAdventure() {
-            document.getElementById('adventureModal').classList.add('show');
-        }
-
-        function closeAdventureModal() {
-            document.getElementById('adventureModal').classList.remove('show');
-        }
-
-        function startNewAdventure() {
-            if (!confirm('Start a new adventure? This will clear your current progress.')) {
-                return;
-            }
-            
-            const adventureType = document.getElementById('adventureType').value;
-            const startLocation = document.getElementById('startLocation').value;
-            const tone = document.getElementById('adventureTone').value;
-            const length = document.getElementById('adventureLength').value;
-            
-            // Reset game state
-            gameState.conversationHistory = [];
-            gameState.adventureState = {
-                chapter: 'Beginning',
-                quests: [],
-                npcs: [],
-                worldState: [],
-                sessionNumber: 1,
-                messageCount: 0,
-                checkpoints: []
-            };
-            gameState.initiativeOrder = [];
-            gameState.currentTurn = 0;
-            
-            document.getElementById('messages').innerHTML = '';
-            
-            // Create adventure prompt
-            let prompt = `I want to start a new D&D adventure. `;
-            
-            if (adventureType !== 'custom') {
-                if (adventureType === 'surprise') {
-                    prompt += `Surprise me with an exciting adventure! `;
-                } else {
-                    prompt += `Create a ${adventureType} adventure. `;
-                }
-            }
-            
-            if (startLocation) {
-                prompt += `Start me in: ${startLocation}. `;
-            }
-            
-            prompt += `The tone should be ${tone}. `;
-            prompt += `This is planned as a ${length}. `;
-            prompt += `My character is: ${getCharacterSummary()}. `;
-            prompt += `Begin the adventure!`;
-            
-            closeAdventureModal();
-            document.getElementById('playerInput').value = prompt;
-            sendMessage();
-        }
-
-        function saveGame() {
-            const fullState = {
-                character: JSON.parse(localStorage.getItem('dnd_character')),
-                gameState: gameState,
-                timestamp: new Date().toISOString()
-            };
-            
-            const blob = new Blob([JSON.stringify(fullState, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `dnd-save-${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            addSystemMessage('💾 Game saved to file!');
-        }
-
-        function loadGame() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = function(e) {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    try {
-                        const fullState = JSON.parse(event.target.result);
-                        
-                        // Restore character
-                        localStorage.setItem('dnd_character', JSON.stringify(fullState.character));
-                        loadCharacter();
-                        
-                        // Restore game state
-                        gameState = fullState.gameState;
-                        saveGameState();
-                        loadGameState();
-                        updateAdventureJournal();
-                        
-                        addSystemMessage('✅ Game loaded successfully!');
-                    } catch (error) {
-                        addSystemMessage('❌ Error loading save file: ' + error.message);
-                    }
-                };
-                reader.readAsText(file);
-            };
-            input.click();
-        }
-
-        // D&D 5e Character Creation Data
-        const subclasses = {
-            'Barbarian': ['Path of the Berserker', 'Path of the Totem Warrior'],
-            'Bard': ['College of Lore', 'College of Valor'],
-            'Cleric': ['Life Domain', 'Light Domain', 'Trickery Domain', 'War Domain'],
-            'Druid': ['Circle of the Land', 'Circle of the Moon'],
-            'Fighter': ['Champion', 'Battle Master', 'Eldritch Knight'],
-            'Monk': ['Way of the Open Hand', 'Way of Shadow', 'Way of the Four Elements'],
-            'Paladin': ['Oath of Devotion', 'Oath of the Ancients', 'Oath of Vengeance'],
-            'Ranger': ['Hunter', 'Beast Master'],
-            'Rogue': ['Thief', 'Assassin', 'Arcane Trickster'],
-            'Sorcerer': ['Draconic Bloodline', 'Wild Magic'],
-            'Warlock': ['The Fiend', 'The Great Old One', 'The Archfey'],
-            'Wizard': ['School of Evocation', 'School of Abjuration', 'School of Divination']
-        };
-
-        const classHitDice = {
-            'Barbarian': 12, 'Fighter': 10, 'Paladin': 10, 'Ranger': 10,
-            'Bard': 8, 'Cleric': 8, 'Druid': 8, 'Monk': 8, 'Rogue': 8, 'Warlock': 8,
-            'Sorcerer': 6, 'Wizard': 6
-        };
-
-        const classSkillCount = {
-            'Barbarian': 2, 'Bard': 3, 'Cleric': 2, 'Druid': 2,
-            'Fighter': 2, 'Monk': 2, 'Paladin': 2, 'Ranger': 3,
-            'Rogue': 4, 'Sorcerer': 2, 'Warlock': 2, 'Wizard': 2
-        };
-
-        const classSkillOptions = {
-            'Barbarian': ['Animal Handling', 'Athletics', 'Intimidation', 'Nature', 'Perception', 'Survival'],
-            'Bard': ['Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception', 'History', 'Insight', 'Intimidation', 'Investigation', 'Medicine', 'Nature', 'Perception', 'Performance', 'Persuasion', 'Religion', 'Sleight of Hand', 'Stealth', 'Survival'],
-            'Cleric': ['History', 'Insight', 'Medicine', 'Persuasion', 'Religion'],
-            'Druid': ['Arcana', 'Animal Handling', 'Insight', 'Medicine', 'Nature', 'Perception', 'Religion', 'Survival'],
-            'Fighter': ['Acrobatics', 'Animal Handling', 'Athletics', 'History', 'Insight', 'Intimidation', 'Perception', 'Survival'],
-            'Monk': ['Acrobatics', 'Athletics', 'History', 'Insight', 'Religion', 'Stealth'],
-            'Paladin': ['Athletics', 'Insight', 'Intimidation', 'Medicine', 'Persuasion', 'Religion'],
-            'Ranger': ['Animal Handling', 'Athletics', 'Insight', 'Investigation', 'Nature', 'Perception', 'Stealth', 'Survival'],
-            'Rogue': ['Acrobatics', 'Athletics', 'Deception', 'Insight', 'Intimidation', 'Investigation', 'Perception', 'Performance', 'Persuasion', 'Sleight of Hand', 'Stealth'],
-            'Sorcerer': ['Arcana', 'Deception', 'Insight', 'Intimidation', 'Persuasion', 'Religion'],
-            'Warlock': ['Arcana', 'Deception', 'History', 'Intimidation', 'Investigation', 'Nature', 'Religion'],
-            'Wizard': ['Arcana', 'History', 'Insight', 'Investigation', 'Medicine', 'Religion']
-        };
-
-        const raceAbilityBonuses = {
-            'Human': {str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1},
-            'Elf': {dex: 2},
-            'Dwarf': {con: 2},
-            'Halfling': {dex: 2},
-            'Dragonborn': {str: 2, cha: 1},
-            'Gnome': {int: 2},
-            'Half-Elf': {cha: 2}, // +1 to two others (simplified)
-            'Half-Orc': {str: 2, con: 1},
-            'Tiefling': {cha: 2, int: 1}
-        };
-
-        const raceSpeed = {
-            'Human': 30, 'Elf': 30, 'Dwarf': 25, 'Halfling': 25,
-            'Dragonborn': 30, 'Gnome': 25, 'Half-Elf': 30,
-            'Half-Orc': 30, 'Tiefling': 30
-        };
-
-        const backgroundSkills = {
-            'Acolyte': ['Insight', 'Religion'],
-            'Charlatan': ['Deception', 'Sleight of Hand'],
-            'Criminal': ['Deception', 'Stealth'],
-            'Entertainer': ['Acrobatics', 'Performance'],
-            'Folk Hero': ['Animal Handling', 'Survival'],
-            'Guild Artisan': ['Insight', 'Persuasion'],
-            'Hermit': ['Medicine', 'Religion'],
-            'Noble': ['History', 'Persuasion'],
-            'Outlander': ['Athletics', 'Survival'],
-            'Sage': ['Arcana', 'History'],
-            'Sailor': ['Athletics', 'Perception'],
-            'Soldier': ['Athletics', 'Intimidation'],
-            'Urchin': ['Sleight of Hand', 'Stealth']
-        };
-
-        let characterCreation = {
-            abilities: {},
-            hp: 0,
-            skills: [],
-            currentStep: 1
-        };
-
-        function openCharCreation() {
-            document.getElementById('charCreationModal').classList.add('show');
-            characterCreation = { abilities: {}, hp: 0, skills: [], currentStep: 1 };
-            showStep(1);
-        }
-
-        function closeCharCreation() {
-            document.getElementById('charCreationModal').classList.remove('show');
-        }
-
-        function showStep(step) {
-            document.querySelectorAll('.creation-step').forEach(s => s.classList.remove('active'));
-            document.getElementById('step' + step).classList.add('active');
-            characterCreation.currentStep = step;
-
-            if (step === 3) {
-                updateHPInstructions();
-            } else if (step === 4) {
-                populateSkills();
-            } else if (step === 5) {
-                updateCharacterSummary();
-            }
-        }
-
-        function nextStep(step) {
-            if (characterCreation.currentStep === 1) {
-                if (!document.getElementById('newRace').value || !document.getElementById('newClass').value || !document.getElementById('newBackground').value) {
-                    addSystemMessage('⚠️ Please select race, class, and background');
-                    return;
-                }
-            } else if (characterCreation.currentStep === 2) {
-                if (Object.keys(characterCreation.abilities).length < 6) {
-                    addSystemMessage('⚠️ Please roll all ability scores');
-                    return;
-                }
-            } else if (characterCreation.currentStep === 3) {
-                if (characterCreation.hp === 0) {
-                    addSystemMessage('⚠️ Please roll hit points');
-                    return;
-                }
-            }
-            showStep(step);
-        }
-
-        function prevStep(step) {
-            showStep(step);
-        }
-
-        function updateSubclasses() {
-            const charClass = document.getElementById('newClass').value;
-            const subclassGroup = document.getElementById('subclassGroup');
-            const subclassSelect = document.getElementById('newSubclass');
-
-            if (charClass && subclasses[charClass]) {
-                subclassSelect.innerHTML = '<option value="">Select Subclass (Optional)</option>';
-                subclasses[charClass].forEach(sub => {
-                    subclassSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
-                });
-                subclassGroup.style.display = 'block';
-            } else {
-                subclassGroup.style.display = 'none';
-            }
-        }
-
-        function rollAbilityDice() {
-            let rolls = [];
-            for (let i = 0; i < 4; i++) {
-                let roll = Math.floor(Math.random() * 6) + 1;
-                while (roll <= 2) {
-                    roll = Math.floor(Math.random() * 6) + 1;
-                }
-                rolls.push(roll);
-            }
-            rolls.sort((a, b) => b - a);
-            const dropped = rolls.pop();
-            const total = rolls.reduce((a, b) => a + b, 0);
-            return { total, rolls, dropped };
-        }
-
-        function rollAbility(ability) {
-            const result = rollAbilityDice();
-            characterCreation.abilities[ability] = result.total;
-
-            document.getElementById('roll' + ability.charAt(0).toUpperCase() + ability.slice(1)).textContent = result.total;
-            document.getElementById('roll' + ability.charAt(0).toUpperCase() + ability.slice(1) + 'Details').textContent = 
-                `Rolled: ${result.rolls.join(', ')} (dropped ${result.dropped})`;
-
-            if (Object.keys(characterCreation.abilities).length === 6) {
-                document.getElementById('abilitiesNext').disabled = false;
-                applyRacialBonuses();
-            }
-        }
-
-        function rollAllAbilities() {
-            ['str', 'dex', 'con', 'int', 'wis', 'cha'].forEach(ability => {
-                rollAbility(ability);
-            });
-        }
-
-        function applyRacialBonuses() {
-            const race = document.getElementById('newRace').value;
-            if (!race || !raceAbilityBonuses[race]) return;
-
-            const bonuses = raceAbilityBonuses[race];
-            ['str', 'dex', 'con', 'int', 'wis', 'cha'].forEach(ability => {
-                if (bonuses[ability]) {
-                    const base = characterCreation.abilities[ability];
-                    const total = base + bonuses[ability];
-                    const abilityName = ability.charAt(0).toUpperCase() + ability.slice(1);
-                    
-                    document.getElementById('roll' + abilityName).textContent = total;
-                    const detailsEl = document.getElementById('roll' + abilityName + 'Details');
-                    const currentDetails = detailsEl.textContent;
-                    detailsEl.textContent = currentDetails + ` + ${bonuses[ability]} (${race})`;
-                    
-                    // Store the final total
-                    characterCreation.abilities[ability] = total;
+                    classData.skillList.forEach(skill => {
+                        const label = document.createElement('label');
+                        label.style.display = 'block';
+                        label.style.marginBottom = '5px';
+                        label.innerHTML = `
+                            <input type="checkbox" name="creationSkills" value="${skill}">
+                            ${skill}
+                        `;
+                        skillDiv.appendChild(label);
+                    });
                 }
             });
-
-            addSystemMessage(`✨ Applied ${race} racial bonuses!`);
-        }
-
-        function updateHPInstructions() {
-            const charClass = document.getElementById('newClass').value;
-            const level = parseInt(document.getElementById('newLevel').value);
-            const hitDie = classHitDice[charClass] || 8;
-
-            if (level === 1) {
-                const conMod = getAbilityModifier(characterCreation.abilities.con);
-                const hp = hitDie + conMod;
-                document.getElementById('hpInstructions').textContent = 
-                    `At level 1, you get maximum hit points!`;
-                document.getElementById('hpFormula').textContent = 
-                    `${hitDie} (class max) + ${conMod} (CON modifier) = ${hp} HP`;
-                document.getElementById('hpResult').textContent = hp;
-                document.getElementById('rollHPBtn').style.display = 'none';
-                document.getElementById('hpNext').disabled = false;
-                characterCreation.hp = hp;
-            } else {
-                document.getElementById('hpInstructions').textContent = 
-                    `Roll d${hitDie} for each level after 1st`;
-                document.getElementById('hpFormula').textContent = 
-                    `First level: ${hitDie} + Then roll d${hitDie} for ${level - 1} more levels`;
-                document.getElementById('rollHPBtn').style.display = 'inline-block';
-            }
-        }
-
-        function rollHP() {
-            const charClass = document.getElementById('newClass').value;
-            const level = parseInt(document.getElementById('newLevel').value);
-            const hitDie = classHitDice[charClass] || 8;
-            const conMod = getAbilityModifier(characterCreation.abilities.con);
-
-            let totalHP = hitDie + conMod;
-            let rollDetails = [`Level 1: ${hitDie} + ${conMod} = ${hitDie + conMod}`];
-
-            for (let i = 2; i <= level; i++) {
-                const roll = Math.floor(Math.random() * hitDie) + 1;
-                const levelHP = roll + conMod;
-                totalHP += levelHP;
-                rollDetails.push(`Level ${i}: ${roll} + ${conMod} = ${levelHP}`);
-            }
-
-            characterCreation.hp = totalHP;
-            document.getElementById('hpResult').textContent = totalHP;
-            document.getElementById('hpFormula').textContent = rollDetails.join(' | ');
-            document.getElementById('hpNext').disabled = false;
-            document.getElementById('rollHPBtn').disabled = true;
-        }
-
-        function populateSkills() {
-            const charClass = document.getElementById('newClass').value;
-            const background = document.getElementById('newBackground').value;
-            const skillSelector = document.getElementById('skillSelector');
-            const skillCount = classSkillCount[charClass] || 2;
-            
-            document.getElementById('skillCount').textContent = skillCount;
-            skillSelector.innerHTML = '';
-
-            // Get background skills (automatically granted)
-            const bgSkills = backgroundSkills[background] || [];
-            
-            // Get available class skills
-            const availableSkills = classSkillOptions[charClass] || [];
-
-            // Add background skills info
-            if (bgSkills.length > 0) {
-                const bgInfo = document.createElement('div');
-                bgInfo.style.gridColumn = '1/-1';
-                bgInfo.style.padding = '10px';
-                bgInfo.style.background = 'rgba(255,215,0,0.1)';
-                bgInfo.style.borderRadius = '4px';
-                bgInfo.style.marginBottom = '10px';
-                bgInfo.innerHTML = `<strong>From ${background}:</strong> ${bgSkills.join(', ')} (automatic)`;
-                skillSelector.appendChild(bgInfo);
-            }
-
-            // Add class skill options
-            availableSkills.forEach((skill, index) => {
-                const div = document.createElement('div');
-                div.className = 'skill-option';
-                
-                // Check if this is a background skill
-                const isBackground = bgSkills.includes(skill);
-                if (isBackground) {
-                    div.classList.add('selected');
-                    div.style.opacity = '0.6';
-                    div.innerHTML = `
-                        <input type="checkbox" id="skill${index}" checked disabled>
-                        <label for="skill${index}">${skill} (Background)</label>
-                    `;
-                } else {
-                    div.innerHTML = `
-                        <input type="checkbox" id="skill${index}" onchange="toggleSkill(${index}, '${skill}', ${skillCount})">
-                        <label for="skill${index}">${skill}</label>
-                    `;
-                }
-                skillSelector.appendChild(div);
-            });
-
-            // Pre-populate with background skills
-            characterCreation.skills = [...bgSkills];
-            characterCreation.maxSkills = skillCount;
-        }
-
-        function toggleSkill(index, skillName, maxSkills) {
-            const checkbox = document.getElementById('skill' + index);
-            const skillDiv = checkbox.parentElement;
-
-            // Count only non-background skills
-            const background = document.getElementById('newBackground').value;
-            const bgSkills = backgroundSkills[background] || [];
-            const selectedClassSkills = characterCreation.skills.filter(s => !bgSkills.includes(s));
-
-            if (checkbox.checked) {
-                if (selectedClassSkills.length >= maxSkills) {
-                    checkbox.checked = false;
-                    addSystemMessage(`⚠️ Maximum ${maxSkills} class skills (${bgSkills.length} from background already included)`);
-                    return;
-                }
-                characterCreation.skills.push(skillName);
-                skillDiv.classList.add('selected');
-            } else {
-                characterCreation.skills = characterCreation.skills.filter(s => s !== skillName);
-                skillDiv.classList.remove('selected');
-            }
-        }
-
-        function updateCharacterSummary() {
-            const summary = document.getElementById('charSummary');
-            const race = document.getElementById('newRace').value;
-            const charClass = document.getElementById('newClass').value;
-            const subclass = document.getElementById('newSubclass').value;
-            const background = document.getElementById('newBackground').value;
-            const level = document.getElementById('newLevel').value;
-
-            let classText = charClass;
-            if (subclass) classText += ` (${subclass})`;
-
-            const ac = 10 + getAbilityModifier(characterCreation.abilities.dex);
-
-            summary.innerHTML = `
-                <div><strong>Race:</strong> ${race}</div>
-                <div><strong>Class:</strong> ${classText}</div>
-                <div><strong>Background:</strong> ${background}</div>
-                <div><strong>Level:</strong> ${level}</div>
-                <div><strong>HP:</strong> ${characterCreation.hp}/${characterCreation.hp}</div>
-                <div><strong>AC:</strong> ${ac}</div>
-                <div><strong>STR:</strong> ${characterCreation.abilities.str}</div>
-                <div><strong>DEX:</strong> ${characterCreation.abilities.dex}</div>
-                <div><strong>CON:</strong> ${characterCreation.abilities.con}</div>
-                <div><strong>INT:</strong> ${characterCreation.abilities.int}</div>
-                <div><strong>WIS:</strong> ${characterCreation.abilities.wis}</div>
-                <div><strong>CHA:</strong> ${characterCreation.abilities.cha}</div>
-                <div style="grid-column: 1/-1;"><strong>Skills:</strong> ${characterCreation.skills.join(', ')}</div>
-            `;
-        }
-
-        function finalizeCharacter() {
-            const name = document.getElementById('newName').value.trim();
-            if (!name) {
-                addSystemMessage('⚠️ Please enter a character name');
-                return;
-            }
-
-            const race = document.getElementById('newRace').value;
-            const charClass = document.getElementById('newClass').value;
-            const subclass = document.getElementById('newSubclass').value;
-            const background = document.getElementById('newBackground').value;
-            const level = document.getElementById('newLevel').value;
-
-            document.getElementById('charName').value = name;
-            document.getElementById('charRace').value = race;
-            document.getElementById('charClass').value = charClass;
-            document.getElementById('charLevel').value = level;
-            document.getElementById('charHP').value = `${characterCreation.hp}/${characterCreation.hp}`;
-            
-            const ac = 10 + getAbilityModifier(characterCreation.abilities.dex);
-            document.getElementById('charAC').value = ac;
-            
-            const speed = raceSpeed[race] || 30;
-            document.getElementById('charSpeed').value = `${speed} ft`;
-
-            document.getElementById('str').value = characterCreation.abilities.str;
-            document.getElementById('dex').value = characterCreation.abilities.dex;
-            document.getElementById('con').value = characterCreation.abilities.con;
-            document.getElementById('int').value = characterCreation.abilities.int;
-            document.getElementById('wis').value = characterCreation.abilities.wis;
-            document.getElementById('cha').value = characterCreation.abilities.cha;
-
-            // Build features text
-            let features = `Class: ${charClass}`;
-            if (subclass) features += ` (${subclass})`;
-            features += `\nBackground: ${background}`;
-            features += `\n\nProficient Skills:\n${characterCreation.skills.join(', ')}`;
-            features += `\n\nProficiency Bonus: +${getProficiencyBonus()}`;
-            features += `\n\nHit Die: d${classHitDice[charClass]}`;
-            
-            document.getElementById('charFeatures').value = features;
-
-            // Add starting equipment note
-            document.getElementById('charEquipment').value = `Starting ${charClass} equipment (see Player's Handbook)`;
-
-            saveCharacter();
-            closeCharCreation();
-
-            addSystemMessage(`✅ Character created: ${name}, Level ${level} ${race} ${charClass}!`);
-            addSystemMessage(`💡 Don't forget to add your starting equipment from the Player's Handbook!`);
-        }
-
-        // Dice Rolling
-        function quickRoll(rollType) {
-            const d20Roll = Math.floor(Math.random() * 20) + 1;
-            const result = applyModifier(d20Roll, rollType);
-            
-            showRollResult(result.total, `d20 + ${result.text}`, [d20Roll], result.modifier);
-            
-            const message = `🎲 ${result.text}: ${d20Roll} + ${result.modifier} = **${result.total}**`;
-            addSystemMessage(message);
-            
-            // Auto-send to DM if there's a pending roll request
-            if (gameState.lastRollType === rollType) {
-                document.getElementById('playerInput').value = `I rolled ${d20Roll}`;
-                setTimeout(() => sendMessage(), 500);
-            }
-        }
-
-        function rollDice(sides) {
-            const result = Math.floor(Math.random() * sides) + 1;
-            showRollResult(result, `d${sides}`, [result]);
-            addSystemMessage(`🎲 Rolled d${sides}: ${result}`);
-        }
-
-        function rollCustom() {
-            const input = document.getElementById('customDice').value.trim();
-            if (!input) return;
-
-            try {
-                const result = parseAndRollDice(input);
-                showRollResult(result.total, input, result.rolls, result.modifier);
-                addSystemMessage(`🎲 Rolled ${input}: ${result.total}`);
-            } catch (error) {
-                addSystemMessage('❌ Invalid dice notation. Use format like: 2d6+3');
-            }
-        }
-
-        function parseAndRollDice(notation) {
-            const match = notation.match(/(\d+)d(\d+)([+-]\d+)?/i);
-            if (!match) throw new Error('Invalid notation');
-
-            const count = parseInt(match[1]);
-            const sides = parseInt(match[2]);
-            const modifier = match[3] ? parseInt(match[3]) : 0;
-
-            const rolls = [];
-            for (let i = 0; i < count; i++) {
-                rolls.push(Math.floor(Math.random() * sides) + 1);
-            }
-
-            const sum = rolls.reduce((a, b) => a + b, 0);
-            const total = sum + modifier;
-
-            return { total, rolls, modifier };
-        }
-
-        function showRollResult(total, notation, rolls, modifier = 0) {
-            const resultDiv = document.getElementById('rollResult');
-            let details = rolls.join(', ');
-            if (modifier !== 0) {
-                details += ` ${modifier >= 0 ? '+' : ''}${modifier}`;
-            }
-            
-            resultDiv.innerHTML = `
-                <div class="roll-result">
-                    <div class="total">${total}</div>
-                    <div class="details">${notation}: [${details}]</div>
-                </div>
-            `;
-        }
-
-        // Initiative Tracker
-        function addInitiative() {
-            const name = document.getElementById('initName').value.trim();
-            const roll = parseInt(document.getElementById('initRoll').value);
-
-            if (!name || isNaN(roll)) {
-                addSystemMessage('⚠️ Please enter both name and initiative roll');
-                return;
-            }
-
-            gameState.initiativeOrder.push({ name, roll });
-            sortInitiative();
-            
-            document.getElementById('initName').value = '';
-            document.getElementById('initRoll').value = '';
-            
-            addSystemMessage(`⚔️ Added ${name} to initiative (${roll})`);
-            saveGameState();
-        }
-
-        function removeInitiative(index) {
-            const removed = gameState.initiativeOrder.splice(index, 1)[0];
-            if (gameState.currentTurn >= index && gameState.currentTurn > 0) {
-                gameState.currentTurn--;
-            }
-            renderInitiative();
-            addSystemMessage(`Removed ${removed.name} from initiative`);
-            saveGameState();
-        }
-
-        function nextTurn() {
-            if (gameState.initiativeOrder.length === 0) return;
-            
-            gameState.currentTurn = (gameState.currentTurn + 1) % gameState.initiativeOrder.length;
-            renderInitiative();
-            
-            const current = gameState.initiativeOrder[gameState.currentTurn];
-            addSystemMessage(`⚔️ ${current.name}'s turn!`);
-            saveGameState();
-        }
-
-        function sortInitiative() {
-            gameState.initiativeOrder.sort((a, b) => b.roll - a.roll);
-            renderInitiative();
-        }
-
-        function clearInitiative() {
-            if (confirm('Clear all initiative?')) {
-                gameState.initiativeOrder = [];
-                gameState.currentTurn = 0;
-                renderInitiative();
-                addSystemMessage('Initiative cleared');
-                saveGameState();
-            }
-        }
-
-        function renderInitiative() {
-            const list = document.getElementById('initiativeList');
-            
-            if (gameState.initiativeOrder.length === 0) {
-                list.innerHTML = '<div class="empty-state">No combatants in initiative</div>';
-                return;
-            }
-            
-            list.innerHTML = '';
-
-            gameState.initiativeOrder.forEach((entry, index) => {
-                const item = document.createElement('div');
-                item.className = 'initiative-item' + (index === gameState.currentTurn ? ' active' : '');
-                item.innerHTML = `
-                    <span class="name">${escapeHtml(entry.name)}</span>
-                    <span class="roll">${entry.roll}</span>
-                    <button class="remove" onclick="removeInitiative(${index})">×</button>
-                `;
-                list.appendChild(item);
-            });
-        }
+        });
     </script>
 </body>
 </html>
