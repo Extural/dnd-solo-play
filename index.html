@@ -1122,6 +1122,7 @@
                     <div class="step-number">2</div>
                     <h2>Ability Scores</h2>
                     <p style="font-size:14px; color:#999;">Roll 4d6, drop lowest, reroll 1s and 2s</p>
+                    <p style="font-size:12px; color:#ffd700;">Racial bonuses will be applied automatically!</p>
                 </div>
 
                 <button class="roll-all-btn" onclick="rollAllAbilities()">🎲 Roll All Abilities</button>
@@ -2066,7 +2067,7 @@ The adventure should be challenging, fun, and responsive to player choices.`;
             input.click();
         }
 
-        // Character Creation Wizard
+        // D&D 5e Character Creation Data
         const subclasses = {
             'Barbarian': ['Path of the Berserker', 'Path of the Totem Warrior'],
             'Bard': ['College of Lore', 'College of Valor'],
@@ -2088,13 +2089,60 @@ The adventure should be challenging, fun, and responsive to player choices.`;
             'Sorcerer': 6, 'Wizard': 6
         };
 
-        const allSkills = [
-            'Acrobatics (DEX)', 'Animal Handling (WIS)', 'Arcana (INT)', 'Athletics (STR)',
-            'Deception (CHA)', 'History (INT)', 'Insight (WIS)', 'Intimidation (CHA)',
-            'Investigation (INT)', 'Medicine (WIS)', 'Nature (INT)', 'Perception (WIS)',
-            'Performance (CHA)', 'Persuasion (CHA)', 'Religion (INT)', 'Sleight of Hand (DEX)',
-            'Stealth (DEX)', 'Survival (WIS)'
-        ];
+        const classSkillCount = {
+            'Barbarian': 2, 'Bard': 3, 'Cleric': 2, 'Druid': 2,
+            'Fighter': 2, 'Monk': 2, 'Paladin': 2, 'Ranger': 3,
+            'Rogue': 4, 'Sorcerer': 2, 'Warlock': 2, 'Wizard': 2
+        };
+
+        const classSkillOptions = {
+            'Barbarian': ['Animal Handling', 'Athletics', 'Intimidation', 'Nature', 'Perception', 'Survival'],
+            'Bard': ['Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception', 'History', 'Insight', 'Intimidation', 'Investigation', 'Medicine', 'Nature', 'Perception', 'Performance', 'Persuasion', 'Religion', 'Sleight of Hand', 'Stealth', 'Survival'],
+            'Cleric': ['History', 'Insight', 'Medicine', 'Persuasion', 'Religion'],
+            'Druid': ['Arcana', 'Animal Handling', 'Insight', 'Medicine', 'Nature', 'Perception', 'Religion', 'Survival'],
+            'Fighter': ['Acrobatics', 'Animal Handling', 'Athletics', 'History', 'Insight', 'Intimidation', 'Perception', 'Survival'],
+            'Monk': ['Acrobatics', 'Athletics', 'History', 'Insight', 'Religion', 'Stealth'],
+            'Paladin': ['Athletics', 'Insight', 'Intimidation', 'Medicine', 'Persuasion', 'Religion'],
+            'Ranger': ['Animal Handling', 'Athletics', 'Insight', 'Investigation', 'Nature', 'Perception', 'Stealth', 'Survival'],
+            'Rogue': ['Acrobatics', 'Athletics', 'Deception', 'Insight', 'Intimidation', 'Investigation', 'Perception', 'Performance', 'Persuasion', 'Sleight of Hand', 'Stealth'],
+            'Sorcerer': ['Arcana', 'Deception', 'Insight', 'Intimidation', 'Persuasion', 'Religion'],
+            'Warlock': ['Arcana', 'Deception', 'History', 'Intimidation', 'Investigation', 'Nature', 'Religion'],
+            'Wizard': ['Arcana', 'History', 'Insight', 'Investigation', 'Medicine', 'Religion']
+        };
+
+        const raceAbilityBonuses = {
+            'Human': {str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1},
+            'Elf': {dex: 2},
+            'Dwarf': {con: 2},
+            'Halfling': {dex: 2},
+            'Dragonborn': {str: 2, cha: 1},
+            'Gnome': {int: 2},
+            'Half-Elf': {cha: 2}, // +1 to two others (simplified)
+            'Half-Orc': {str: 2, con: 1},
+            'Tiefling': {cha: 2, int: 1}
+        };
+
+        const raceSpeed = {
+            'Human': 30, 'Elf': 30, 'Dwarf': 25, 'Halfling': 25,
+            'Dragonborn': 30, 'Gnome': 25, 'Half-Elf': 30,
+            'Half-Orc': 30, 'Tiefling': 30
+        };
+
+        const backgroundSkills = {
+            'Acolyte': ['Insight', 'Religion'],
+            'Charlatan': ['Deception', 'Sleight of Hand'],
+            'Criminal': ['Deception', 'Stealth'],
+            'Entertainer': ['Acrobatics', 'Performance'],
+            'Folk Hero': ['Animal Handling', 'Survival'],
+            'Guild Artisan': ['Insight', 'Persuasion'],
+            'Hermit': ['Medicine', 'Religion'],
+            'Noble': ['History', 'Persuasion'],
+            'Outlander': ['Athletics', 'Survival'],
+            'Sage': ['Arcana', 'History'],
+            'Sailor': ['Athletics', 'Perception'],
+            'Soldier': ['Athletics', 'Intimidation'],
+            'Urchin': ['Sleight of Hand', 'Stealth']
+        };
 
         let characterCreation = {
             abilities: {},
@@ -2192,6 +2240,7 @@ The adventure should be challenging, fun, and responsive to player choices.`;
 
             if (Object.keys(characterCreation.abilities).length === 6) {
                 document.getElementById('abilitiesNext').disabled = false;
+                applyRacialBonuses();
             }
         }
 
@@ -2199,6 +2248,30 @@ The adventure should be challenging, fun, and responsive to player choices.`;
             ['str', 'dex', 'con', 'int', 'wis', 'cha'].forEach(ability => {
                 rollAbility(ability);
             });
+        }
+
+        function applyRacialBonuses() {
+            const race = document.getElementById('newRace').value;
+            if (!race || !raceAbilityBonuses[race]) return;
+
+            const bonuses = raceAbilityBonuses[race];
+            ['str', 'dex', 'con', 'int', 'wis', 'cha'].forEach(ability => {
+                if (bonuses[ability]) {
+                    const base = characterCreation.abilities[ability];
+                    const total = base + bonuses[ability];
+                    const abilityName = ability.charAt(0).toUpperCase() + ability.slice(1);
+                    
+                    document.getElementById('roll' + abilityName).textContent = total;
+                    const detailsEl = document.getElementById('roll' + abilityName + 'Details');
+                    const currentDetails = detailsEl.textContent;
+                    detailsEl.textContent = currentDetails + ` + ${bonuses[ability]} (${race})`;
+                    
+                    // Store the final total
+                    characterCreation.abilities[ability] = total;
+                }
+            });
+
+            addSystemMessage(`✨ Applied ${race} racial bonuses!`);
         }
 
         function updateHPInstructions() {
@@ -2250,34 +2323,79 @@ The adventure should be challenging, fun, and responsive to player choices.`;
         }
 
         function populateSkills() {
+            const charClass = document.getElementById('newClass').value;
+            const background = document.getElementById('newBackground').value;
             const skillSelector = document.getElementById('skillSelector');
+            const skillCount = classSkillCount[charClass] || 2;
+            
+            document.getElementById('skillCount').textContent = skillCount;
             skillSelector.innerHTML = '';
 
-            allSkills.forEach((skill, index) => {
+            // Get background skills (automatically granted)
+            const bgSkills = backgroundSkills[background] || [];
+            
+            // Get available class skills
+            const availableSkills = classSkillOptions[charClass] || [];
+
+            // Add background skills info
+            if (bgSkills.length > 0) {
+                const bgInfo = document.createElement('div');
+                bgInfo.style.gridColumn = '1/-1';
+                bgInfo.style.padding = '10px';
+                bgInfo.style.background = 'rgba(255,215,0,0.1)';
+                bgInfo.style.borderRadius = '4px';
+                bgInfo.style.marginBottom = '10px';
+                bgInfo.innerHTML = `<strong>From ${background}:</strong> ${bgSkills.join(', ')} (automatic)`;
+                skillSelector.appendChild(bgInfo);
+            }
+
+            // Add class skill options
+            availableSkills.forEach((skill, index) => {
                 const div = document.createElement('div');
                 div.className = 'skill-option';
-                div.innerHTML = `
-                    <input type="checkbox" id="skill${index}" onchange="toggleSkill(${index})">
-                    <label for="skill${index}">${skill}</label>
-                `;
+                
+                // Check if this is a background skill
+                const isBackground = bgSkills.includes(skill);
+                if (isBackground) {
+                    div.classList.add('selected');
+                    div.style.opacity = '0.6';
+                    div.innerHTML = `
+                        <input type="checkbox" id="skill${index}" checked disabled>
+                        <label for="skill${index}">${skill} (Background)</label>
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <input type="checkbox" id="skill${index}" onchange="toggleSkill(${index}, '${skill}', ${skillCount})">
+                        <label for="skill${index}">${skill}</label>
+                    `;
+                }
                 skillSelector.appendChild(div);
             });
+
+            // Pre-populate with background skills
+            characterCreation.skills = [...bgSkills];
+            characterCreation.maxSkills = skillCount;
         }
 
-        function toggleSkill(index) {
+        function toggleSkill(index, skillName, maxSkills) {
             const checkbox = document.getElementById('skill' + index);
             const skillDiv = checkbox.parentElement;
 
+            // Count only non-background skills
+            const background = document.getElementById('newBackground').value;
+            const bgSkills = backgroundSkills[background] || [];
+            const selectedClassSkills = characterCreation.skills.filter(s => !bgSkills.includes(s));
+
             if (checkbox.checked) {
-                if (characterCreation.skills.length >= 4) {
+                if (selectedClassSkills.length >= maxSkills) {
                     checkbox.checked = false;
-                    addSystemMessage('⚠️ Maximum 4 skills');
+                    addSystemMessage(`⚠️ Maximum ${maxSkills} class skills (${bgSkills.length} from background already included)`);
                     return;
                 }
-                characterCreation.skills.push(allSkills[index]);
+                characterCreation.skills.push(skillName);
                 skillDiv.classList.add('selected');
             } else {
-                characterCreation.skills = characterCreation.skills.filter(s => s !== allSkills[index]);
+                characterCreation.skills = characterCreation.skills.filter(s => s !== skillName);
                 skillDiv.classList.remove('selected');
             }
         }
@@ -2319,15 +2437,23 @@ The adventure should be challenging, fun, and responsive to player choices.`;
                 return;
             }
 
+            const race = document.getElementById('newRace').value;
+            const charClass = document.getElementById('newClass').value;
+            const subclass = document.getElementById('newSubclass').value;
+            const background = document.getElementById('newBackground').value;
+            const level = document.getElementById('newLevel').value;
+
             document.getElementById('charName').value = name;
-            document.getElementById('charRace').value = document.getElementById('newRace').value;
-            document.getElementById('charClass').value = document.getElementById('newClass').value;
-            document.getElementById('charLevel').value = document.getElementById('newLevel').value;
+            document.getElementById('charRace').value = race;
+            document.getElementById('charClass').value = charClass;
+            document.getElementById('charLevel').value = level;
             document.getElementById('charHP').value = `${characterCreation.hp}/${characterCreation.hp}`;
             
             const ac = 10 + getAbilityModifier(characterCreation.abilities.dex);
             document.getElementById('charAC').value = ac;
-            document.getElementById('charSpeed').value = '30 ft';
+            
+            const speed = raceSpeed[race] || 30;
+            document.getElementById('charSpeed').value = `${speed} ft`;
 
             document.getElementById('str').value = characterCreation.abilities.str;
             document.getElementById('dex').value = characterCreation.abilities.dex;
@@ -2336,18 +2462,24 @@ The adventure should be challenging, fun, and responsive to player choices.`;
             document.getElementById('wis').value = characterCreation.abilities.wis;
             document.getElementById('cha').value = characterCreation.abilities.cha;
 
-            const subclass = document.getElementById('newSubclass').value;
-            const background = document.getElementById('newBackground').value;
-            let features = '';
-            if (subclass) features += `Subclass: ${subclass}\n`;
-            features += `Background: ${background}\n`;
-            features += `Proficient Skills: ${characterCreation.skills.join(', ')}`;
+            // Build features text
+            let features = `Class: ${charClass}`;
+            if (subclass) features += ` (${subclass})`;
+            features += `\nBackground: ${background}`;
+            features += `\n\nProficient Skills:\n${characterCreation.skills.join(', ')}`;
+            features += `\n\nProficiency Bonus: +${getProficiencyBonus()}`;
+            features += `\n\nHit Die: d${classHitDice[charClass]}`;
+            
             document.getElementById('charFeatures').value = features;
+
+            // Add starting equipment note
+            document.getElementById('charEquipment').value = `Starting ${charClass} equipment (see Player's Handbook)`;
 
             saveCharacter();
             closeCharCreation();
 
-            addSystemMessage(`✅ Character created: ${name}, Level ${document.getElementById('charLevel').value} ${document.getElementById('charRace').value} ${document.getElementById('charClass').value}!`);
+            addSystemMessage(`✅ Character created: ${name}, Level ${level} ${race} ${charClass}!`);
+            addSystemMessage(`💡 Don't forget to add your starting equipment from the Player's Handbook!`);
         }
 
         // Dice Rolling
