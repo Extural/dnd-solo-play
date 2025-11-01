@@ -1,0 +1,6 @@
+# Dependencies
+node_modules/
+claude-proxy/node_modules/
+
+# Vercel
+.vercel
