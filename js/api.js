@@ -288,18 +288,17 @@ const APIModule = (() => {
         });
         
      const claudeResponse = await fetch('https://dnd-claude-proxy.vercel.app/api/claude', {
-   	 method: 'POST',
-  	  headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-        model: "claude-3-sonnet-20240229",
-        max_tokens: config.maxTokens,
-        temperature: config.temperature,
-        messages: formattedMessages
-    })
-});
->>>>>>> origin/master
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			model: "claude-3-sonnet-20240229",
+			max_tokens: config.maxTokens,
+			temperature: config.temperature,
+			messages: formattedMessages
+		})
+	});
         
         const claudeData = await claudeResponse.json();
         
