@@ -66,8 +66,8 @@ const APIModule = (() => {
                 });
             });
             
-            // Call the Vercel proxy - UPDATED URL to use the primary domain
-            const claudeResponse = await fetch('https://dnd-claude-proxy.vercel.app/api/claude', {
+            // Call the Vercel proxy - UPDATED to newest URL
+            const claudeResponse = await fetch('https://dnd-claude-proxy-xe504k5xk-exturals-projects.vercel.app/api/claude', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
