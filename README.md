@@ -1,4 +1,4 @@
-# 🎲 D&D Solo Play - Modular Edition
+# 🎲 D&D Solo Play -  Modular Edition
 
 A complete D&D 5e Solo Play application with AI Dungeon Master, now organized into clean, maintainable modules!
 
