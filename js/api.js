@@ -34,7 +34,7 @@ const APIModule = (() => {
             statusElement.className = 'status-connected';
         }
         
-        console.log('API Module initialized with Claude proxy');
+        console.log('API Module initialized with Claude proxy - LATEST VERSION');
     }
 
     /**
@@ -66,8 +66,8 @@ const APIModule = (() => {
                 });
             });
             
-            // Call the Vercel proxy - UPDATED to newest URL
-            const claudeResponse = await fetch('https://dnd-claude-proxy-xe504k5xk-exturals-projects.vercel.app/api/claude', {
+            // Call the Vercel proxy with newest URL
+            const claudeResponse = await fetch('https://dnd-claude-proxy-cu3qb4zrc-exturals-projects.vercel.app/api/claude', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
