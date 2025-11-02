@@ -1,13 +1,12 @@
 /**
  * Simplified API Module for D&D Solo Play
- * Using a public CORS proxy to avoid CORS issues
+ * Using a mock response for demo purposes
  */
 
 const APIModule = (() => {
     // Configuration
     let config = {
-        provider: 'claude',
-        apiKey: '', // Will be entered by user
+        provider: 'demo',
         maxTokens: 4000,
         temperature: 0.7,
         tokenEstimate: 0,
@@ -16,115 +15,27 @@ const APIModule = (() => {
 
     // Message history
     let messageHistory = [];
-    let isConnected = false;
+    let isConnected = true;
     let lastResponse = '';
 
     /**
      * Initialize the API module
      */
     function init() {
-        // Load configuration from localStorage
-        const savedConfig = localStorage.getItem('dnd-solo-api-config');
-        if (savedConfig) {
-            config = {...config, ...JSON.parse(savedConfig)};
-        }
-        
-        // Update UI elements if they exist
-        if (document.getElementById('apiKey')) {
-            document.getElementById('apiKey').value = config.apiKey;
-        }
-        
         // Load message history from localStorage
         const savedHistory = localStorage.getItem('dnd-solo-message-history');
         if (savedHistory) {
             messageHistory = JSON.parse(savedHistory);
         }
         
-        console.log('API Module initialized - DIRECT CLAUDE API VERSION');
-        
-        // Set up event listeners if elements exist
-        if (document.getElementById('apiKey')) {
-            document.getElementById('apiKey').addEventListener('change', saveConfig);
-        }
-        if (document.getElementById('testConnection')) {
-            document.getElementById('testConnection').addEventListener('click', testConnection);
-        }
-        
-        // Update connection status
-        updateConnectionStatus(Boolean(config.apiKey));
-    }
-
-    /**
-     * Save configuration to localStorage
-     */
-    function saveConfig() {
-        // Update config object
-        if (document.getElementById('apiKey')) {
-            config.apiKey = document.getElementById('apiKey').value;
-        }
-        
-        // Save to localStorage
-        localStorage.setItem('dnd-solo-api-config', JSON.stringify(config));
-        
-        // Update connection status
-        updateConnectionStatus(Boolean(config.apiKey));
-    }
-
-    /**
-     * Test connection to Claude API
-     */
-    async function testConnection() {
-        updateConnectionStatus('testing');
-        
-        if (!config.apiKey) {
-            updateConnectionStatus(false, 'API key required');
-            return;
-        }
-        
-        try {
-            const response = await callClaudeAPI("Hello, testing connection.", "You are a helpful assistant.");
-            updateConnectionStatus(true);
-            return true;
-        } catch (error) {
-            console.error('Connection test failed:', error);
-            updateConnectionStatus(false, error.message);
-            return false;
-        }
-    }
-
-    /**
-     * Update connection status indicator
-     */
-    function updateConnectionStatus(status, errorMsg = '') {
-        const statusElement = document.getElementById('connectionStatus');
-        
-        if (!statusElement) return;
-        
-        if (status === 'testing') {
-            statusElement.textContent = 'Testing...';
-            statusElement.className = 'status-testing';
-            return;
-        }
-        
-        isConnected = status;
-        
-        if (status) {
-            statusElement.textContent = 'Connected';
-            statusElement.className = 'status-connected';
-        } else {
-            statusElement.textContent = errorMsg || 'Not connected';
-            statusElement.className = 'status-disconnected';
-        }
+        console.log('Demo API Module initialized');
     }
 
     /**
      * Send a message to the AI
+     * In demo mode, this returns predefined responses
      */
     async function sendMessage(message, characterData = {}) {
-        if (!config.apiKey) {
-            return "⚠️ Please enter your Claude API key in the settings panel.";
-        }
-        
         // Add user message to history
         messageHistory.push({role: "user", content: message});
         
@@ -133,11 +44,9 @@ const APIModule = (() => {
             messageHistory = messageHistory.slice(-20);
         }
         
-        // Create system message based on character data
-        const systemMessage = createDMSystemMessage(characterData);
-        
         try {
-            const response = await callClaudeAPI(message, systemMessage);
+            // Generate a response based on the message content
+            const response = generateDemoResponse(message, characterData);
             
             // Add assistant response to history
             messageHistory.push({role: "assistant", content: response});
@@ -154,55 +63,53 @@ const APIModule = (() => {
     }
 
     /**
-     * Call Claude API directly using a CORS proxy
+     * Generate a demo response based on the message content
      */
-    async function callClaudeAPI(message, systemMessage) {
-        // Format messages for Claude API
-        const formattedMessages = [
-            {role: "system", content: systemMessage}
-        ];
+    function generateDemoResponse(message, characterData) {
+        const name = characterData.name || 'adventurer';
+        const race = characterData.race || 'human';
+        const className = characterData.class || 'fighter';
         
-        // Add message history (skip system messages)
-        messageHistory.forEach(msg => {
-            if (msg.role !== "system") {
-                formattedMessages.push({
-                    role: msg.role,
-                    content: msg.content
-                });
-            }
-        });
-        
-        // Add current message if not in history yet
-        if (!messageHistory.some(msg => msg.role === "user" && msg.content === message)) {
-            formattedMessages.push({role: "user", content: message});
+        // Check if the message is about starting an adventure
+        if (message.toLowerCase().includes('start') && message.toLowerCase().includes('adventure')) {
+            return `Welcome, brave ${name} the ${race} ${className}! 
+
+The small village of Oakbrook sits nestled between the ancient forest of Whispering Pines and the towering Granite Mountains. As you arrive at the village square, you notice an unusual commotion. Villagers gather around a bulletin board where an elderly man in fine robes is posting a notice.
+
+The village elder, Gareth Timbers, spots you and recognizes you as an adventurer by your equipment and bearing. He approaches with a worried expression.
+
+"Thank the gods, an adventurer in our time of need! Strange lights have been seen in the ruins on Barrow Hill, and three children have gone missing. The village council is offering a reward of 100 gold pieces for anyone who can find them and bring them home safely. Will you help us?"
+
+What would you like to do?`;
         }
         
-        // Use a public CORS proxy to avoid CORS issues
-        const proxyUrl = "https://corsproxy.io/?";
-        const targetUrl = "https://api.anthropic.com/v1/messages";
-        
-        const claudeResponse = await fetch(proxyUrl + encodeURIComponent(targetUrl), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': config.apiKey,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: "claude-3-sonnet-20240229",
-                max_tokens: config.maxTokens,
-                temperature: config.temperature,
-                messages: formattedMessages
-            })
-        });
-        
-        const claudeData = await claudeResponse.json();
-        
-        if (!claudeResponse.ok) {
-            throw new Error(claudeData.error?.message || 'Unknown error');
+        // Check if it's a greeting
+        if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi ')) {
+            return `Greetings, ${name}! How may I assist you in your adventure today?`;
         }
         
-        return claudeData.content[0].text;
+        // Check if it mentions combat
+        if (message.toLowerCase().includes('attack') || message.toLowerCase().includes('fight') || message.toLowerCase().includes('combat')) {
+            return `As you prepare for combat, roll for initiative!
+
+You notice your opponent - a grizzled bandit with a scarred face and a sharp blade. He smirks at you, twirling his dagger. "Another hero thinks they can best me? Let's see what you're made of!"
+
+Make a Dexterity (Initiative) check to determine turn order.`;
+        }
+        
+        // Check if it mentions exploration
+        if (message.toLowerCase().includes('explore') || message.toLowerCase().includes('search') || message.toLowerCase().includes('look')) {
+            return `You carefully survey your surroundings.
+
+The path ahead splits into three directions. To the north, a narrow trail winds up into the misty mountains. To the east, you see the dense treeline of an ancient forest with twisted oaks and thick underbrush. To the west, the path descends toward what appears to be a small settlement in the valley below.
+
+Make a DC 12 Wisdom (Perception) check if you want to search for any hidden paths or signs of recent activity.`;
+        }
+        
+        // Default response
+        return `The world of adventure stretches before you, ${name}. What would you like to do next? You could explore the nearby area, talk to locals for information, or set out on your quest.
+
+Remember, as your Dungeon Master, I'm here to describe the world around you and the consequences of your actions. Just tell me what you want to do, and we'll continue our story together.`;
     }
 
     /**
@@ -211,44 +118,7 @@ const APIModule = (() => {
     function createDMSystemMessage(characterData) {
         // Create a detailed system prompt for the AI
         let systemMessage = `You are an expert Dungeon Master for a solo D&D 5e adventure. 
-Your goal is to provide an immersive, engaging, and balanced game experience.
-
-Follow these guidelines:
-1. Describe scenes vividly but concisely.
-2. Balance roleplay, exploration, and combat.
-3. Adapt to player decisions - never railroad them.
-4. Apply D&D 5e rules accurately but prioritize fun.
-5. Tell the player when to make dice rolls and what the DC is.
-6. Keep track of the narrative, NPCs, locations, and quests.
-7. Provide reasonable options when the player seems stuck.
-8. Create engaging NPCs with distinct personalities.
-9. Incorporate the character's background and traits into the story.
-
-Your tone should be descriptive, immersive, and reactive to player choices. 
-Ask for specific dice rolls (e.g., "Roll a Perception check" or "Make a DC 15 Dexterity save").`;
-
-        // Add character information if available
-        if (characterData && Object.keys(characterData).length > 0) {
-            systemMessage += `\n\nThe player's character information:
-Name: ${characterData.name || 'Unknown'}
-Race: ${characterData.race || 'Unknown'}
-Class: ${characterData.class || 'Unknown'}${characterData.subclass ? ' (' + characterData.subclass + ')' : ''}
-Level: ${characterData.level || 1}
-Background: ${characterData.background || 'Unknown'}
-HP: ${characterData.hp || '?'}/${characterData.maxHp || '?'}
-AC: ${characterData.ac || '?'}
-Proficiency Bonus: +${characterData.proficiencyBonus || 2}
-
-Ability Scores:
-STR: ${characterData.abilities?.strength || '?'} (${calculateModifier(characterData.abilities?.strength)})
-DEX: ${characterData.abilities?.dexterity || '?'} (${calculateModifier(characterData.abilities?.dexterity)})
-CON: ${characterData.abilities?.constitution || '?'} (${calculateModifier(characterData.abilities?.constitution)})
-INT: ${characterData.abilities?.intelligence || '?'} (${calculateModifier(characterData.abilities?.intelligence)})
-WIS: ${characterData.abilities?.wisdom || '?'} (${calculateModifier(characterData.abilities?.wisdom)})
-CHA: ${characterData.abilities?.charisma || '?'} (${calculateModifier(characterData.abilities?.charisma)})
-
-Proficient Skills: ${characterData.skills?.join(', ') || 'None listed'}`;
-        }
+Your goal is to provide an immersive, engaging, and balanced game experience.`;
 
         return systemMessage;
     }
@@ -278,19 +148,7 @@ Proficient Skills: ${characterData.skills?.join(', ') || 'None listed'}`;
         resetConversation();
         
         // Create initial prompt
-        const name = characterData.name || 'the adventurer';
-        const className = characterData.class || 'adventurer';
-        const location = options.location || 'a mysterious land';
-        const theme = options.theme || 'high fantasy';
-        const tone = options.tone || 'balanced';
-        
-        const adventurePrompt = `I want to play D&D 5e solo. I'll be playing ${name}, a level ${characterData.level || 1} ${characterData.race || ''} ${className}${characterData.subclass ? ' (' + characterData.subclass + ')' : ''} with a ${characterData.background || 'mysterious'} background.
-
-Please create a ${theme} adventure in ${location} with a ${tone} tone. Start by describing the initial scene and situation to draw me into the world. Give me clear hooks to engage with, but let me decide how to approach them.
-
-Use D&D 5e rules. Tell me when to make ability checks, saving throws, or attack rolls by specifying the type of roll and DC (e.g., "Make a DC 15 Perception check"). I'll roll the dice and tell you the results.
-
-Let's begin!`;
+        const adventurePrompt = `I want to play D&D 5e solo. Let's start an adventure!`;
         
         // Get the AI's response
         const response = await sendMessage(adventurePrompt, characterData);
@@ -298,6 +156,26 @@ Let's begin!`;
         return response;
     }
 
+    /**
+     * Test connection - always succeeds in demo mode
+     */
+    function testConnection() {
+        const statusElement = document.getElementById('connectionStatus');
+        if (statusElement) {
+            statusElement.textContent = 'Connected (Demo Mode)';
+            statusElement.className = 'status-connected';
+        }
+        isConnected = true;
+        return true;
+    }
+    
+    /**
+     * Update connection status
+     */
+    function updateConnectionStatus(status) {
+        isConnected = true;
+    }
+    
     /**
      * Get configuration
      */
