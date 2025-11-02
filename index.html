@@ -3,872 +3,317 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D&D Solo Play with Claude AI</title>
-    <style>
-        :root {
-            --primary: #7e57c2;
-            --secondary: #673ab7;
-            --accent: #9575cd;
-            --text: #333;
-            --bg: #f5f5f5;
-            --panel: #fff;
-            --border: #e0e0e0;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg);
-            color: var(--text);
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            grid-template-rows: auto 1fr;
-            grid-template-areas:
-                "header header"
-                "left main";
-            gap: 20px;
-            height: 100vh;
-            box-sizing: border-box;
-        }
-        
-        header {
-            grid-area: header;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px;
-            background-color: var(--primary);
-            color: white;
-            border-radius: 8px;
-        }
-        
-        .left-panel {
-            grid-area: left;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .main-panel {
-            grid-area: main;
-            display: flex;
-            flex-direction: column;
-            background-color: var(--panel);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .panel {
-            background-color: var(--panel);
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        h1, h2, h3 {
-            margin: 0;
-            font-weight: 600;
-        }
-        
-        /* API Configuration */
-        .api-config {
-            margin-bottom: 15px;
-        }
-        
-        .api-config label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-        
-        .api-config select,
-        .api-config input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        
-        .config-group {
-            margin-bottom: 15px;
-        }
-        
-        /* Status indicators */
-        .status {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            margin-top: 5px;
-        }
-        
-        .status-connected {
-            color: green;
-        }
-        
-        .status-disconnected {
-            color: red;
-        }
-        
-        .status-testing {
-            color: orange;
-        }
-        
-        /* Character sheet */
-        .character-sheet input,
-        .character-sheet select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        
-        .ability-scores {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .ability-score {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .ability-score label {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .ability-score input {
-            width: 50px;
-            text-align: center;
-            padding: 5px;
-        }
-        
-        .ability-mod {
-            font-weight: bold;
-            color: var(--primary);
-        }
-        
-        /* Chat section */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-        
-        .chat-messages {
-            flex-grow: 1;
-            padding: 15px;
-            overflow-y: auto;
-            background-color: var(--bg);
-        }
-        
-        .chat-input-container {
-            display: flex;
-            padding: 10px;
-            border-top: 1px solid var(--border);
-        }
-        
-        .chat-input {
-            flex-grow: 1;
-            padding: 10px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-        }
-        
-        .chat-send {
-            padding: 10px 15px;
-            margin-left: 10px;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        
-        /* Chat messages */
-        .message {
-            margin-bottom: 15px;
-            max-width: 80%;
-            padding: 10px 15px;
-            border-radius: 8px;
-        }
-        
-        .user-message {
-            align-self: flex-end;
-            background-color: var(--primary);
-            color: white;
-            margin-left: auto;
-        }
-        
-        .dm-message {
-            background-color: var(--panel);
-            border: 1px solid var(--border);
-        }
-        
-        .system-message {
-            background-color: #f0f0f0;
-            border: 1px solid #ddd;
-            color: #666;
-            font-style: italic;
-            text-align: center;
-            max-width: 100%;
-            margin: 10px auto;
-        }
-        
-        .roll-message {
-            background-color: #e8f5e9;
-            border: 1px solid #c8e6c9;
-            text-align: center;
-            max-width: 100%;
-            margin: 10px auto;
-        }
-        
-        /* Dice roller */
-        .dice-container {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        
-        .dice-button {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
-        .dice-result {
-            text-align: center;
-            font-weight: bold;
-            margin-top: 10px;
-            font-size: 1.2em;
-        }
-        
-        .custom-roll {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .custom-roll input {
-            flex-grow: 1;
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-        }
-        
-        .roll-button {
-            padding: 8px 15px;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        
-        /* Initiative tracker */
-        .initiative-list {
-            margin-top: 15px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .initiative-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            margin-bottom: 5px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-        }
-        
-        .initiative-active {
-            background-color: rgba(126, 87, 194, 0.1);
-            border-left: 3px solid var(--primary);
-        }
-        
-        .initiative-controls {
-            display: flex;
-            gap: 5px;
-        }
-        
-        .initiative-controls button {
-            padding: 3px 8px;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
-        
-        /* Buttons */
-        .button {
-            padding: 8px 15px;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-        }
-        
-        .button-secondary {
-            background-color: var(--secondary);
-        }
-        
-        .button-action {
-            background-color: var(--accent);
-        }
-        
-        .actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-    </style>
+    <title>D&D Solo Play</title>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <div class="container">
+    <div class="app-container">
         <header>
             <h1>D&D Solo Play</h1>
-            <div class="status">
-                <span>API Status:</span>
-                <span id="connectionStatus" class="status-disconnected">Not connected</span>
-                <span id="costEstimate">$0.0000 | 0 tokens</span>
-            </div>
+            <nav>
+                <button id="toggleCharacterSheet">Character</button>
+                <button id="toggleDice">Dice</button>
+                <button id="toggleSettings">Settings</button>
+                <button id="toggleInitiative">Initiative</button>
+            </nav>
         </header>
-        
-        <div class="left-panel">
-            <!-- API Configuration Panel -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h2>AI Configuration</h2>
-                </div>
-                <div class="api-config">
-                    <label for="apiProvider">AI Provider:</label>
-                    <select id="apiProvider">
-                        <option value="claude">Claude (Anthropic)</option>
-                        <option value="openai">OpenAI (GPT-4)</option>
-                        <option value="ollama">Ollama (Local)</option>
-                    </select>
-                    
-                    <div id="apiKeyConfig" class="config-group">
-                        <label for="apiKey">API Key:</label>
-                        <input type="password" id="apiKey" placeholder="Enter your API key">
+
+        <main>
+            <div id="characterSheet" class="panel">
+                <h2>Character Sheet</h2>
+                <form id="characterForm">
+                    <div class="form-section">
+                        <h3>Character Details</h3>
+                        <div class="form-row">
+                            <label for="characterName">Name:</label>
+                            <input type="text" id="characterName" placeholder="Character Name">
+                        </div>
+                        <div class="form-row">
+                            <label for="characterRace">Race:</label>
+                            <input type="text" id="characterRace" placeholder="e.g. Human, Elf, Dwarf">
+                        </div>
+                        <div class="form-row">
+                            <label for="characterClass">Class:</label>
+                            <input type="text" id="characterClass" placeholder="e.g. Fighter, Wizard, Rogue">
+                        </div>
+                        <div class="form-row">
+                            <label for="characterSubclass">Subclass:</label>
+                            <input type="text" id="characterSubclass" placeholder="e.g. Champion, Evocation, Thief">
+                        </div>
+                        <div class="form-row">
+                            <label for="characterLevel">Level:</label>
+                            <input type="number" id="characterLevel" value="1" min="1" max="20">
+                        </div>
+                        <div class="form-row">
+                            <label for="characterBackground">Background:</label>
+                            <input type="text" id="characterBackground" placeholder="e.g. Soldier, Sage, Criminal">
+                        </div>
                     </div>
-                    
-                    <div id="ollamaConfig" class="config-group" style="display: none;">
-                        <label for="ollamaUrl">Ollama URL:</label>
-                        <input type="text" id="ollamaUrl" value="http://localhost:11434">
-                        
-                        <label for="ollamaModel">Model:</label>
-                        <input type="text" id="ollamaModel" value="llama3.1:latest">
+
+                    <div class="form-section">
+                        <h3>Abilities</h3>
+                        <div class="ability-scores">
+                            <div class="ability">
+                                <label for="strengthScore">STR</label>
+                                <input type="number" id="strengthScore" value="10" min="1" max="20">
+                                <span id="strengthMod">(+0)</span>
+                            </div>
+                            <div class="ability">
+                                <label for="dexterityScore">DEX</label>
+                                <input type="number" id="dexterityScore" value="10" min="1" max="20">
+                                <span id="dexterityMod">(+0)</span>
+                            </div>
+                            <div class="ability">
+                                <label for="constitutionScore">CON</label>
+                                <input type="number" id="constitutionScore" value="10" min="1" max="20">
+                                <span id="constitutionMod">(+0)</span>
+                            </div>
+                            <div class="ability">
+                                <label for="intelligenceScore">INT</label>
+                                <input type="number" id="intelligenceScore" value="10" min="1" max="20">
+                                <span id="intelligenceMod">(+0)</span>
+                            </div>
+                            <div class="ability">
+                                <label for="wisdomScore">WIS</label>
+                                <input type="number" id="wisdomScore" value="10" min="1" max="20">
+                                <span id="wisdomMod">(+0)</span>
+                            </div>
+                            <div class="ability">
+                                <label for="charismaScore">CHA</label>
+                                <input type="number" id="charismaScore" value="10" min="1" max="20">
+                                <span id="charismaMod">(+0)</span>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <button id="testConnection" class="button">Test Connection</button>
-                </div>
+
+                    <div class="form-section">
+                        <h3>Combat Stats</h3>
+                        <div class="form-row">
+                            <label for="characterHP">Hit Points:</label>
+                            <input type="number" id="characterHP" value="10" min="0">
+                            <span>/</span>
+                            <input type="number" id="characterMaxHP" value="10" min="1">
+                        </div>
+                        <div class="form-row">
+                            <label for="characterAC">Armor Class:</label>
+                            <input type="number" id="characterAC" value="10" min="1">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Skills</h3>
+                        <div class="skills-container">
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillAcrobatics" value="Acrobatics">
+                                <label for="skillAcrobatics">Acrobatics</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillAnimalHandling" value="Animal Handling">
+                                <label for="skillAnimalHandling">Animal Handling</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillArcana" value="Arcana">
+                                <label for="skillArcana">Arcana</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillAthletics" value="Athletics">
+                                <label for="skillAthletics">Athletics</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillDeception" value="Deception">
+                                <label for="skillDeception">Deception</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillHistory" value="History">
+                                <label for="skillHistory">History</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillInsight" value="Insight">
+                                <label for="skillInsight">Insight</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillIntimidation" value="Intimidation">
+                                <label for="skillIntimidation">Intimidation</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillInvestigation" value="Investigation">
+                                <label for="skillInvestigation">Investigation</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillMedicine" value="Medicine">
+                                <label for="skillMedicine">Medicine</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillNature" value="Nature">
+                                <label for="skillNature">Nature</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillPerception" value="Perception">
+                                <label for="skillPerception">Perception</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillPerformance" value="Performance">
+                                <label for="skillPerformance">Performance</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillPersuasion" value="Persuasion">
+                                <label for="skillPersuasion">Persuasion</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillReligion" value="Religion">
+                                <label for="skillReligion">Religion</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillSleightOfHand" value="Sleight of Hand">
+                                <label for="skillSleightOfHand">Sleight of Hand</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillStealth" value="Stealth">
+                                <label for="skillStealth">Stealth</label>
+                            </div>
+                            <div class="skill-item">
+                                <input type="checkbox" id="skillSurvival" value="Survival">
+                                <label for="skillSurvival">Survival</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <button type="button" id="saveCharacter">Save Character</button>
+                        <button type="button" id="loadCharacter">Load Character</button>
+                        <button type="button" id="resetCharacter">Reset</button>
+                    </div>
+                </form>
             </div>
-            
-            <!-- Character Sheet Panel -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h2>Character Sheet</h2>
-                </div>
-                <div class="character-sheet">
-                    <div>
-                        <label for="charName">Name:</label>
-                        <input type="text" id="charName" value="Thalia Stormborn">
-                    </div>
-                    
-                    <div>
-                        <label for="charRace">Race:</label>
-                        <select id="charRace">
-                            <option>Human</option>
-                            <option>Elf</option>
-                            <option>Dwarf</option>
-                            <option>Halfling</option>
-                            <option>Half-Elf</option>
-                            <option>Half-Orc</option>
-                            <option>Tiefling</option>
-                            <option>Dragonborn</option>
-                            <option>Gnome</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label for="charClass">Class:</label>
-                        <select id="charClass">
-                            <option>Fighter</option>
-                            <option>Wizard</option>
-                            <option>Rogue</option>
-                            <option>Cleric</option>
-                            <option>Bard</option>
-                            <option>Druid</option>
-                            <option>Paladin</option>
-                            <option>Ranger</option>
-                            <option>Sorcerer</option>
-                            <option>Warlock</option>
-                            <option>Barbarian</option>
-                            <option>Monk</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label for="charBackground">Background:</label>
-                        <select id="charBackground">
-                            <option>Acolyte</option>
-                            <option>Criminal</option>
-                            <option>Folk Hero</option>
-                            <option>Noble</option>
-                            <option>Sage</option>
-                            <option>Soldier</option>
-                            <option>Charlatan</option>
-                            <option>Entertainer</option>
-                            <option>Guild Artisan</option>
-                            <option>Hermit</option>
-                            <option>Outlander</option>
-                            <option>Sailor</option>
-                            <option>Urchin</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label for="charLevel">Level:</label>
-                        <input type="number" id="charLevel" value="1" min="1" max="20">
-                    </div>
-                    
-                    <div class="ability-scores">
-                        <div class="ability-score">
-                            <label for="strScore">STR</label>
-                            <input type="number" id="strScore" value="14" min="1" max="20">
-                            <span id="strMod" class="ability-mod">+2</span>
-                        </div>
-                        <div class="ability-score">
-                            <label for="dexScore">DEX</label>
-                            <input type="number" id="dexScore" value="12" min="1" max="20">
-                            <span id="dexMod" class="ability-mod">+1</span>
-                        </div>
-                        <div class="ability-score">
-                            <label for="conScore">CON</label>
-                            <input type="number" id="conScore" value="16" min="1" max="20">
-                            <span id="conMod" class="ability-mod">+3</span>
-                        </div>
-                        <div class="ability-score">
-                            <label for="intScore">INT</label>
-                            <input type="number" id="intScore" value="10" min="1" max="20">
-                            <span id="intMod" class="ability-mod">+0</span>
-                        </div>
-                        <div class="ability-score">
-                            <label for="wisScore">WIS</label>
-                            <input type="number" id="wisScore" value="13" min="1" max="20">
-                            <span id="wisMod" class="ability-mod">+1</span>
-                        </div>
-                        <div class="ability-score">
-                            <label for="chaScore">CHA</label>
-                            <input type="number" id="chaScore" value="8" min="1" max="20">
-                            <span id="chaMod" class="ability-mod">-1</span>
-                        </div>
-                    </div>
-                    
-                    <div class="actions">
-                        <button id="saveCharacter" class="button">Save</button>
-                        <button id="createCharacter" class="button button-secondary">Create New</button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Dice Roller Panel -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h2>Dice Roller</h2>
-                </div>
+
+            <div id="diceRoller" class="panel">
+                <h2>Dice Roller</h2>
                 <div class="dice-container">
-                    <button class="dice-button" data-dice="d4">d4</button>
-                    <button class="dice-button" data-dice="d6">d6</button>
-                    <button class="dice-button" data-dice="d8">d8</button>
-                    <button class="dice-button" data-dice="d10">d10</button>
-                    <button class="dice-button" data-dice="d12">d12</button>
-                    <button class="dice-button" data-dice="d20">d20</button>
-                    <button class="dice-button" data-dice="d100">d100</button>
+                    <button class="dice-btn" data-dice="d4">d4</button>
+                    <button class="dice-btn" data-dice="d6">d6</button>
+                    <button class="dice-btn" data-dice="d8">d8</button>
+                    <button class="dice-btn" data-dice="d10">d10</button>
+                    <button class="dice-btn" data-dice="d12">d12</button>
+                    <button class="dice-btn" data-dice="d20">d20</button>
+                    <button class="dice-btn" data-dice="d100">d100</button>
                 </div>
-                <div class="dice-result">Roll a die</div>
-                <div class="custom-roll">
-                    <input type="text" id="customDice" placeholder="e.g., 2d6+3">
-                    <button id="rollCustom" class="roll-button">Roll</button>
-                </div>
-            </div>
-            
-            <!-- Initiative Tracker Panel -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h2>Initiative Tracker</h2>
-                </div>
-                <div>
-                    <div>
-                        <label for="initiativeName">Name:</label>
-                        <input type="text" id="initiativeName" placeholder="Character name">
+
+                <div class="dice-options">
+                    <div class="dice-count">
+                        <label for="diceCount">Number of dice:</label>
+                        <input type="number" id="diceCount" value="1" min="1" max="10">
                     </div>
-                    <div>
-                        <label for="initiativeValue">Roll:</label>
-                        <input type="number" id="initiativeValue" placeholder="Initiative roll">
-                    </div>
-                    <button id="addInitiative" class="button">Add to Initiative</button>
-                </div>
-                <div class="initiative-list" id="initiativeList">
-                    <!-- Initiative items will be added here -->
-                </div>
-                <div class="actions">
-                    <button id="nextTurn" class="button">Next Turn</button>
-                    <button id="resetInitiative" class="button button-secondary">Reset</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="main-panel">
-            <div class="chat-container">
-                <div class="chat-messages" id="chatMessages">
-                    <!-- Chat messages will appear here -->
-                    <div class="message system-message">
-                        Welcome to D&D Solo Play! Set up your character and connect to an AI to begin.
+                    <div class="dice-modifier">
+                        <label for="diceModifier">Modifier:</label>
+                        <input type="number" id="diceModifier" value="0">
                     </div>
                 </div>
-                <div class="chat-input-container">
-                    <textarea class="chat-input" id="chatInput" placeholder="Type your message here..." rows="3"></textarea>
-                    <button class="chat-send" id="sendMessage">Send</button>
+
+                <div class="roll-history">
+                    <h3>Roll History</h3>
+                    <div id="rollResults"></div>
+                    <button id="clearRolls">Clear</button>
                 </div>
             </div>
-        </div>
+
+            <div id="settings" class="panel">
+                <h2>Settings</h2>
+                
+                <!-- API Settings Panel - ADDED -->
+                <div class="settings-panel">
+                  <h3>API Settings</h3>
+                  <div class="form-group">
+                    <label for="apiKey">Claude API Key:</label>
+                    <input type="password" id="apiKey" placeholder="sk-ant-..." />
+                    <button id="testConnection">Test Connection</button>
+                    <span id="connectionStatus" class="status-disconnected">Not connected</span>
+                  </div>
+                  <p class="help-text">
+                    Enter your Claude API key to enable AI functionality. 
+                    Your key is stored only in your browser and is never sent to our servers.
+                    <a href="https://console.anthropic.com/keys" target="_blank">Get a Claude API key</a>
+                  </p>
+                </div>
+                <!-- End API Settings Panel -->
+                
+                <div class="setting-group">
+                    <h3>Theme</h3>
+                    <select id="themeSelector">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                        <option value="fantasy">Fantasy</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Font Size</h3>
+                    <select id="fontSizeSelector">
+                        <option value="small">Small</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="large">Large</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Auto-Save</h3>
+                    <label class="switch">
+                        <input type="checkbox" id="autoSaveToggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="setting-label">Auto-save game progress</span>
+                </div>
+
+                <div class="setting-group">
+                    <h3>Sound Effects</h3>
+                    <label class="switch">
+                        <input type="checkbox" id="soundToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <span class="setting-label">Enable sound effects</span>
+                </div>
+                
+                <div class="setting-group">
+                    <h3>Game Statistics</h3>
+                    <div id="costEstimate" class="stat-display">$0.0000 | ~0 tokens</div>
+                    <button id="resetStats">Reset Statistics</button>
+                </div>
+            </div>
+
+            <div id="initiative" class="panel">
+                <h2>Initiative Tracker</h2>
+                <div class="initiative-controls">
+                    <div class="add-combatant">
+                        <input type="text" id="combatantName" placeholder="Combatant Name">
+                        <input type="number" id="initiativeRoll" placeholder="Initiative" min="1">
+                        <button id="addCombatant">Add</button>
+                    </div>
+                    <div class="tracker-controls">
+                        <button id="nextTurn">Next Turn</button>
+                        <button id="resetCombat">End Combat</button>
+                    </div>
+                </div>
+                <div id="initiativeList" class="initiative-list"></div>
+            </div>
+
+            <div id="chatContainer">
+                <div id="chatMessages"></div>
+                <div class="message-input">
+                    <textarea id="messageInput" placeholder="Type your message..."></textarea>
+                    <button id="sendButton">Send</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2023 D&D Solo Play | <a href="https://github.com/Extural/dnd-solo-play" target="_blank">GitHub</a></p>
+        </footer>
     </div>
 
-    <!-- Main App Script -->
-    <script>
-        // Ability Score Modifiers
-        function calculateModifier(score) {
-            return Math.floor((score - 10) / 2);
-        }
-        
-        function updateModifiers() {
-            const abilities = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
-            abilities.forEach(ability => {
-                const score = parseInt(document.getElementById(`${ability}Score`).value);
-                const mod = calculateModifier(score);
-                const modText = mod >= 0 ? `+${mod}` : mod;
-                document.getElementById(`${ability}Mod`).textContent = modText;
-            });
-        }
-        
-        // Initialize ability score change listeners
-        document.getElementById('strScore').addEventListener('change', updateModifiers);
-        document.getElementById('dexScore').addEventListener('change', updateModifiers);
-        document.getElementById('conScore').addEventListener('change', updateModifiers);
-        document.getElementById('intScore').addEventListener('change', updateModifiers);
-        document.getElementById('wisScore').addEventListener('change', updateModifiers);
-        document.getElementById('chaScore').addEventListener('change', updateModifiers);
-        
-        // Dice Rolling
-        function rollDice(notation) {
-            // Parse dice notation (e.g., "2d6+3")
-            const regex = /(\d+)?d(\d+)([+-]\d+)?/;
-            const match = notation.match(regex);
-            
-            if (!match) return null;
-            
-            const count = parseInt(match[1]) || 1;
-            const sides = parseInt(match[2]);
-            const modifier = match[3] ? parseInt(match[3]) : 0;
-            
-            // Roll the dice
-            const rolls = [];
-            for (let i = 0; i < count; i++) {
-                rolls.push(Math.floor(Math.random() * sides) + 1);
-            }
-            
-            // Calculate total
-            const total = rolls.reduce((sum, roll) => sum + roll, 0) + modifier;
-            
-            return {
-                notation,
-                rolls,
-                total
-            };
-        }
-        
-        // Set up dice button listeners
-        document.querySelectorAll('.dice-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const dice = button.dataset.dice;
-                const result = rollDice(`1${dice}`);
-                document.querySelector('.dice-result').textContent = `${result.total} (${result.rolls.join(', ')})`;
-                addRollMessage(`Rolled ${result.notation}: ${result.total} [${result.rolls.join(', ')}]`);
-            });
-        });
-        
-        // Custom dice roll
-        document.getElementById('rollCustom').addEventListener('click', () => {
-            const notation = document.getElementById('customDice').value;
-            if (notation) {
-                const result = rollDice(notation);
-                if (result) {
-                    document.querySelector('.dice-result').textContent = `${result.total} (${result.rolls.join(', ')})`;
-                    addRollMessage(`Rolled ${result.notation}: ${result.total} [${result.rolls.join(', ')}]`);
-                } else {
-                    document.querySelector('.dice-result').textContent = 'Invalid dice notation';
-                }
-            }
-        });
-        
-        // Initiative Tracker
-        let initiativeList = [];
-        let currentTurn = -1;
-        
-        function updateInitiativeDisplay() {
-            const listElement = document.getElementById('initiativeList');
-            listElement.innerHTML = '';
-            
-            initiativeList.forEach((item, index) => {
-                const itemElement = document.createElement('div');
-                itemElement.className = 'initiative-item';
-                if (index === currentTurn) {
-                    itemElement.classList.add('initiative-active');
-                }
-                
-                itemElement.innerHTML = `
-                    <span>${item.name} (${item.initiative})</span>
-                    <div class="initiative-controls">
-                        <button class="remove-initiative">✕</button>
-                    </div>
-                `;
-                
-                itemElement.querySelector('.remove-initiative').addEventListener('click', () => {
-                    initiativeList.splice(index, 1);
-                    if (currentTurn >= initiativeList.length) {
-                        currentTurn = initiativeList.length > 0 ? 0 : -1;
-                    }
-                    updateInitiativeDisplay();
-                });
-                
-                listElement.appendChild(itemElement);
-            });
-        }
-        
-        document.getElementById('addInitiative').addEventListener('click', () => {
-            const name = document.getElementById('initiativeName').value;
-            const initiative = parseInt(document.getElementById('initiativeValue').value);
-            
-            if (name && !isNaN(initiative)) {
-                initiativeList.push({ name, initiative });
-                
-                // Sort by initiative value (highest first)
-                initiativeList.sort((a, b) => b.initiative - a.initiative);
-                
-                // Reset current turn if this is the first entry
-                if (currentTurn === -1 && initiativeList.length === 1) {
-                    currentTurn = 0;
-                }
-                
-                updateInitiativeDisplay();
-                
-                // Clear input fields
-                document.getElementById('initiativeName').value = '';
-                document.getElementById('initiativeValue').value = '';
-            }
-        });
-        
-        document.getElementById('nextTurn').addEventListener('click', () => {
-            if (initiativeList.length > 0) {
-                currentTurn = (currentTurn + 1) % initiativeList.length;
-                updateInitiativeDisplay();
-                addSystemMessage(`It's ${initiativeList[currentTurn].name}'s turn!`);
-            }
-        });
-        
-        document.getElementById('resetInitiative').addEventListener('click', () => {
-            initiativeList = [];
-            currentTurn = -1;
-            updateInitiativeDisplay();
-            addSystemMessage('Initiative tracker reset.');
-        });
-        
-        // Chat Messages
-        function addUserMessage(text) {
-            const chatMessages = document.getElementById('chatMessages');
-            const messageElement = document.createElement('div');
-            messageElement.className = 'message user-message';
-            messageElement.textContent = text;
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        function addDMMessage(text) {
-            const chatMessages = document.getElementById('chatMessages');
-            const messageElement = document.createElement('div');
-            messageElement.className = 'message dm-message';
-            messageElement.textContent = text;
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        function addSystemMessage(text) {
-            const chatMessages = document.getElementById('chatMessages');
-            const messageElement = document.createElement('div');
-            messageElement.className = 'message system-message';
-            messageElement.textContent = text;
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        function addRollMessage(text) {
-            const chatMessages = document.getElementById('chatMessages');
-            const messageElement = document.createElement('div');
-            messageElement.className = 'message roll-message';
-            messageElement.textContent = text;
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        // Send message button
-        document.getElementById('sendMessage').addEventListener('click', async () => {
-            const messageInput = document.getElementById('chatInput');
-            const message = messageInput.value.trim();
-            
-            if (message) {
-                addUserMessage(message);
-                messageInput.value = '';
-                
-                // Get current character data
-                const characterData = getCurrentCharacter();
-                
-                // Check if we have an API connection
-                if (window.APIModule) {
-                    addSystemMessage('Waiting for DM response...');
-                    
-                    // Send message to AI
-                    const response = await window.APIModule.sendMessage(message, characterData);
-                    
-                    addDMMessage(response);
-                } else {
-                    addSystemMessage('API module not loaded. Make sure api.js is included and initialized.');
-                }
-            }
-        });
-        
-        // Allow Enter key to send message
-        document.getElementById('chatInput').addEventListener('keypress', (event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                document.getElementById('sendMessage').click();
-            }
-        });
-        
-        // Character Functions
-        function getCurrentCharacter() {
-            return {
-                name: document.getElementById('charName').value,
-                race: document.getElementById('charRace').value,
-                class: document.getElementById('charClass').value,
-                background: document.getElementById('charBackground').value,
-                level: parseInt(document.getElementById('charLevel').value),
-                abilities: {
-                    strength: parseInt(document.getElementById('strScore').value),
-                    dexterity: parseInt(document.getElementById('dexScore').value),
-                    constitution: parseInt(document.getElementById('conScore').value),
-                    intelligence: parseInt(document.getElementById('intScore').value),
-                    wisdom: parseInt(document.getElementById('wisScore').value),
-                    charisma: parseInt(document.getElementById('chaScore').value)
-                }
-            };
-        }
-        
-        // Save character to localStorage
-        document.getElementById('saveCharacter').addEventListener('click', () => {
-            const character = getCurrentCharacter();
-            localStorage.setItem('dnd-solo-character', JSON.stringify(character));
-            addSystemMessage('Character saved!');
-        });
-        
-        // Create a new adventure
-        document.getElementById('createCharacter').addEventListener('click', () => {
-            // In a full application, this would open a character creation wizard
-            addSystemMessage('Character creation wizard would open here.');
-        });
-        
-        // Load character from localStorage
-        function loadCharacter() {
-            const savedCharacter = localStorage.getItem('dnd-solo-character');
-            if (savedCharacter) {
-                const character = JSON.parse(savedCharacter);
-                document.getElementById('charName').value = character.name || '';
-                document.getElementById('charRace').value = character.race || 'Human';
-                document.getElementById('charClass').value = character.class || 'Fighter';
-                document.getElementById('charBackground').value = character.background || 'Soldier';
-                document.getElementById('charLevel').value = character.level || 1;
-                
-                if (character.abilities) {
-                    document.getElementById('strScore').value = character.abilities.strength || 10;
-                    document.getElementById('dexScore').value = character.abilities.dexterity || 10;
-                    document.getElementById('conScore').value = character.abilities.constitution || 10;
-                    document.getElementById('intScore').value = character.abilities.intelligence || 10;
-                    document.getElementById('wisScore').value = character.abilities.wisdom || 10;
-                    document.getElementById('chaScore').value = character.abilities.charisma || 10;
-                    updateModifiers();
-                }
-                
-                addSystemMessage('Character loaded from save.');
-            }
-        }
-        
-        // Initialize
-        window.addEventListener('load', () => {
-            // Load character data
-            loadCharacter();
-            
-            // Initialize ability score modifiers
-            updateModifiers();
-            
-            // Initialize API Module if available
-            if (window.APIModule) {
-                window.APIModule.init();
-                addSystemMessage('API module initialized. Connect to start your adventure!');
-            } else {
-                addSystemMessage('API module not found. Make sure api.js is loaded before using AI features.');
-            }
-        });
-    </script>
-    
-    <!-- Load API Module -->
+    <script src="js/character.js"></script>
+    <script src="js/dice.js"></script>
+    <script src="js/initiative.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
