@@ -1,14 +1,21 @@
-// Character Management Module
-// Handles character sheet, character creation wizard, and ability score calculations
+/**
+ * Character Module for D&D Solo Play
+ * Handles character creation and management
+ */
 
-const CharacterModule = (function() {
-    let currentCharacter = {
+const CharacterModule = (() => {
+    // Default character data
+    const defaultCharacter = {
         name: '',
         race: '',
         class: '',
         subclass: '',
         level: 1,
         background: '',
+        hp: 10,
+        maxHp: 10,
+        ac: 10,
+        proficiencyBonus: 2,
         abilities: {
             strength: 10,
             dexterity: 10,
@@ -17,308 +24,297 @@ const CharacterModule = (function() {
             wisdom: 10,
             charisma: 10
         },
-        hp: 0,
-        maxHp: 0,
-        ac: 10,
-        proficiencyBonus: 2,
         skills: []
     };
-
-    let currentStep = 1;
-    const totalSteps = 5;
-
-    // Initialize character module
+    
+    // Current character data
+    let characterData = {...defaultCharacter};
+    
+    /**
+     * Initialize the character module
+     */
     function init() {
-        attachEventListeners();
+        // Load character from localStorage
+        const savedCharacter = localStorage.getItem('dnd-solo-character');
+        if (savedCharacter) {
+            characterData = JSON.parse(savedCharacter);
+        }
+        
+        // Set up event listeners for character form
+        const saveCharacterButton = document.getElementById('saveCharacter');
+        if (saveCharacterButton) {
+            saveCharacterButton.addEventListener('click', saveCharacter);
+        }
+        
+        const loadCharacterButton = document.getElementById('loadCharacter');
+        if (loadCharacterButton) {
+            loadCharacterButton.addEventListener('click', loadCharacter);
+        }
+        
+        const resetCharacterButton = document.getElementById('resetCharacter');
+        if (resetCharacterButton) {
+            resetCharacterButton.addEventListener('click', resetCharacter);
+        }
+        
+        // Set up ability score change listeners
+        setupAbilityScoreListeners();
+        
+        // Update character sheet with current data
         updateCharacterSheet();
-    }
-
-    // Attach event listeners
-    function attachEventListeners() {
-        // Create Character button
-        document.getElementById('createCharacterBtn')?.addEventListener('click', openCharacterCreator);
         
-        // Character sheet quick rolls
-        document.querySelectorAll('.quick-roll-btn').forEach(btn => {
-            btn.addEventListener('click', handleQuickRoll);
-        });
+        console.log('Character Module initialized');
+    }
+    
+    /**
+     * Set up ability score change listeners
+     */
+    function setupAbilityScoreListeners() {
+        // Ability score inputs
+        const abilityInputs = [
+            'strengthScore',
+            'dexterityScore',
+            'constitutionScore',
+            'intelligenceScore',
+            'wisdomScore',
+            'charismaScore'
+        ];
         
-        // Character sheet input changes
-        document.getElementById('charName')?.addEventListener('change', (e) => {
-            currentCharacter.name = e.target.value;
-        });
-        
-        // Ability score changes
-        ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'].forEach(ability => {
-            document.getElementById(ability)?.addEventListener('change', (e) => {
-                currentCharacter.abilities[ability] = parseInt(e.target.value) || 10;
-                updateModifiers();
-            });
-        });
-    }
-
-    // Open character creation wizard
-    function openCharacterCreator() {
-        currentStep = 1;
-        showStep(1);
-        document.getElementById('charCreationModal').classList.add('active');
-    }
-
-    // Close character creation wizard
-    function closeCharacterCreator() {
-        document.getElementById('charCreationModal').classList.remove('active');
-    }
-
-    // Show specific step in wizard
-    function showStep(step) {
-        // Hide all steps
-        document.querySelectorAll('.creation-step').forEach(el => {
-            el.classList.remove('active');
-        });
-        
-        // Show current step
-        document.getElementById(`step${step}`)?.classList.add('active');
-        currentStep = step;
-    }
-
-    // Navigate to next step
-    function nextStep() {
-        if (currentStep < totalSteps) {
-            if (validateStep(currentStep)) {
-                showStep(currentStep + 1);
+        abilityInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener('change', updateAbilityModifiers);
             }
-        }
-    }
-
-    // Navigate to previous step
-    function prevStep() {
-        if (currentStep > 1) {
-            showStep(currentStep - 1);
-        }
-    }
-
-    // Validate current step
-    function validateStep(step) {
-        switch(step) {
-            case 1:
-                const race = document.getElementById('creationRace')?.value;
-                const cls = document.getElementById('creationClass')?.value;
-                const bg = document.getElementById('creationBackground')?.value;
-                return race && cls && bg;
-            case 2:
-                // Check if abilities are rolled
-                const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
-                return abilities.every(ability => {
-                    const value = parseInt(document.getElementById(`rolled${ability.charAt(0).toUpperCase() + ability.slice(1)}`)?.textContent || '0');
-                    return value >= 3;
-                });
-            case 3:
-                return parseInt(document.getElementById('rolledHP')?.textContent || '0') > 0;
-            default:
-                return true;
-        }
-    }
-
-    // Roll ability score (4d6 drop lowest, reroll 1s and 2s)
-    function rollAbility() {
-        let dice = [];
-        for (let i = 0; i < 4; i++) {
-            let roll = Math.floor(Math.random() * 6) + 1;
-            // Reroll 1s and 2s (heroic method)
-            while (roll <= 2) {
-                roll = Math.floor(Math.random() * 6) + 1;
-            }
-            dice.push(roll);
-        }
-        
-        // Sort and drop lowest
-        dice.sort((a, b) => b - a);
-        const dropped = dice.pop();
-        const total = dice.reduce((a, b) => a + b, 0);
-        
-        return {
-            total,
-            dice,
-            dropped
-        };
-    }
-
-    // Roll single ability
-    function rollSingleAbility(ability) {
-        const result = rollAbility();
-        const capitalizedAbility = ability.charAt(0).toUpperCase() + ability.slice(1);
-        
-        document.getElementById(`rolled${capitalizedAbility}`).textContent = result.total;
-        document.getElementById(`rolled${capitalizedAbility}Details`).textContent = 
-            `Rolled: ${result.dice.join(', ')} (dropped ${result.dropped})`;
-    }
-
-    // Roll all abilities at once
-    function rollAllAbilities() {
-        ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'].forEach(ability => {
-            rollSingleAbility(ability);
         });
     }
-
-    // Roll hit points
-    function rollHitPoints() {
-        const cls = document.getElementById('creationClass')?.value;
-        const level = parseInt(document.getElementById('creationLevel')?.value) || 1;
-        const con = parseInt(document.getElementById('rolledConstitution')?.textContent) || 10;
-        const conMod = Math.floor((con - 10) / 2);
+    
+    /**
+     * Update ability modifiers when scores change
+     */
+    function updateAbilityModifiers() {
+        updateModifier('strength');
+        updateModifier('dexterity');
+        updateModifier('constitution');
+        updateModifier('intelligence');
+        updateModifier('wisdom');
+        updateModifier('charisma');
+    }
+    
+    /**
+     * Update a single ability modifier
+     */
+    function updateModifier(ability) {
+        const scoreInput = document.getElementById(ability + 'Score');
+        const modSpan = document.getElementById(ability + 'Mod');
         
-        if (!cls) return;
+        if (scoreInput && modSpan) {
+            const score = parseInt(scoreInput.value) || 10;
+            const mod = Math.floor((score - 10) / 2);
+            const modText = mod >= 0 ? '+' + mod : mod.toString();
+            
+            modSpan.textContent = '(' + modText + ')';
+        }
+    }
+    
+    /**
+     * Save character data from form
+     */
+    function saveCharacter() {
+        // Get character details
+        if (document.getElementById('characterName')) {
+            characterData.name = document.getElementById('characterName').value || '';
+        }
+        if (document.getElementById('characterRace')) {
+            characterData.race = document.getElementById('characterRace').value || '';
+        }
+        if (document.getElementById('characterClass')) {
+            characterData.class = document.getElementById('characterClass').value || '';
+        }
+        if (document.getElementById('characterSubclass')) {
+            characterData.subclass = document.getElementById('characterSubclass').value || '';
+        }
+        if (document.getElementById('characterLevel')) {
+            characterData.level = parseInt(document.getElementById('characterLevel').value) || 1;
+        }
+        if (document.getElementById('characterBackground')) {
+            characterData.background = document.getElementById('characterBackground').value || '';
+        }
         
-        const classData = DND_CLASSES[cls];
-        const hitDie = classData.hitDie;
+        // Get combat stats
+        if (document.getElementById('characterHP')) {
+            characterData.hp = parseInt(document.getElementById('characterHP').value) || 10;
+        }
+        if (document.getElementById('characterMaxHP')) {
+            characterData.maxHp = parseInt(document.getElementById('characterMaxHP').value) || 10;
+        }
+        if (document.getElementById('characterAC')) {
+            characterData.ac = parseInt(document.getElementById('characterAC').value) || 10;
+        }
         
-        let hp = 0;
+        // Get ability scores
+        if (document.getElementById('strengthScore')) {
+            characterData.abilities.strength = parseInt(document.getElementById('strengthScore').value) || 10;
+        }
+        if (document.getElementById('dexterityScore')) {
+            characterData.abilities.dexterity = parseInt(document.getElementById('dexterityScore').value) || 10;
+        }
+        if (document.getElementById('constitutionScore')) {
+            characterData.abilities.constitution = parseInt(document.getElementById('constitutionScore').value) || 10;
+        }
+        if (document.getElementById('intelligenceScore')) {
+            characterData.abilities.intelligence = parseInt(document.getElementById('intelligenceScore').value) || 10;
+        }
+        if (document.getElementById('wisdomScore')) {
+            characterData.abilities.wisdom = parseInt(document.getElementById('wisdomScore').value) || 10;
+        }
+        if (document.getElementById('charismaScore')) {
+            characterData.abilities.charisma = parseInt(document.getElementById('charismaScore').value) || 10;
+        }
         
-        // Level 1: Max HP
-        if (level === 1) {
-            hp = hitDie + conMod;
+        // Get skills
+        characterData.skills = [];
+        const skillCheckboxes = document.querySelectorAll('.skill-item input[type="checkbox"]');
+        skillCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                characterData.skills.push(checkbox.value);
+            }
+        });
+        
+        // Calculate proficiency bonus based on level
+        characterData.proficiencyBonus = Math.floor((characterData.level - 1) / 4) + 2;
+        
+        // Save to localStorage
+        localStorage.setItem('dnd-solo-character', JSON.stringify(characterData));
+        
+        // Show success message
+        if (window.UIModule) {
+            UIModule.addChatMessage('Character saved successfully!', 'system');
         } else {
-            // Level 1 max
-            hp = hitDie + conMod;
+            alert('Character saved successfully!');
+        }
+    }
+    
+    /**
+     * Load character from localStorage
+     */
+    function loadCharacter() {
+        const savedCharacter = localStorage.getItem('dnd-solo-character');
+        
+        if (savedCharacter) {
+            characterData = JSON.parse(savedCharacter);
+            updateCharacterSheet();
             
-            // Roll for additional levels
-            for (let i = 2; i <= level; i++) {
-                const roll = Math.floor(Math.random() * hitDie) + 1;
-                hp += roll + conMod;
+            // Show success message
+            if (window.UIModule) {
+                UIModule.addChatMessage('Character loaded successfully!', 'system');
+            } else {
+                alert('Character loaded successfully!');
+            }
+        } else {
+            // Show error message
+            if (window.UIModule) {
+                UIModule.addChatMessage('No saved character found.', 'system');
+            } else {
+                alert('No saved character found.');
             }
         }
-        
-        document.getElementById('rolledHP').textContent = hp;
     }
-
-    // Finalize character creation
-    function finalizeCharacter() {
-        // Get values from creation wizard
-        currentCharacter.race = document.getElementById('creationRace')?.value || '';
-        currentCharacter.class = document.getElementById('creationClass')?.value || '';
-        currentCharacter.subclass = document.getElementById('creationSubclass')?.value || '';
-        currentCharacter.level = parseInt(document.getElementById('creationLevel')?.value) || 1;
-        currentCharacter.background = document.getElementById('creationBackground')?.value || '';
-        currentCharacter.name = document.getElementById('creationName')?.value || 'Adventurer';
-        
-        // Get rolled abilities
-        ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'].forEach(ability => {
-            const capitalizedAbility = ability.charAt(0).toUpperCase() + ability.slice(1);
-            const value = parseInt(document.getElementById(`rolled${capitalizedAbility}`)?.textContent) || 10;
-            currentCharacter.abilities[ability] = value;
-        });
-        
-        // Get HP
-        currentCharacter.maxHp = parseInt(document.getElementById('rolledHP')?.textContent) || 1;
-        currentCharacter.hp = currentCharacter.maxHp;
-        
-        // Calculate AC (base 10 + DEX modifier)
-        const dexMod = Math.floor((currentCharacter.abilities.dexterity - 10) / 2);
-        currentCharacter.ac = 10 + dexMod;
-        
-        // Calculate proficiency bonus
-        currentCharacter.proficiencyBonus = Math.ceil(currentCharacter.level / 4) + 1;
-        
-        // Get selected skills
-        const selectedSkills = [];
-        document.querySelectorAll('input[name="creationSkills"]:checked').forEach(checkbox => {
-            selectedSkills.push(checkbox.value);
-        });
-        currentCharacter.skills = selectedSkills;
-        
-        // Update character sheet
+    
+    /**
+     * Reset character to default values
+     */
+    function resetCharacter() {
+        characterData = {...defaultCharacter};
         updateCharacterSheet();
         
-        // Close wizard
-        closeCharacterCreator();
-        
-        // Notify user
-        if (window.ChatModule) {
-            window.ChatModule.addSystemMessage(`Character created: ${currentCharacter.name}, Level ${currentCharacter.level} ${currentCharacter.race} ${currentCharacter.class}`);
+        // Show success message
+        if (window.UIModule) {
+            UIModule.addChatMessage('Character reset to default values.', 'system');
+        } else {
+            alert('Character reset to default values.');
         }
     }
-
-    // Update character sheet display
+    
+    /**
+     * Update character sheet form with current data
+     */
     function updateCharacterSheet() {
-        // Update basic info
-        document.getElementById('charName').value = currentCharacter.name;
-        document.getElementById('charRace').value = currentCharacter.race;
-        document.getElementById('charClass').value = currentCharacter.class;
-        document.getElementById('charLevel').value = currentCharacter.level;
-        
-        // Update abilities
-        Object.keys(currentCharacter.abilities).forEach(ability => {
-            document.getElementById(ability).value = currentCharacter.abilities[ability];
-        });
-        
-        // Update HP and AC
-        document.getElementById('hp').value = currentCharacter.hp;
-        document.getElementById('maxHp').value = currentCharacter.maxHp;
-        document.getElementById('ac').value = currentCharacter.ac;
-        
-        // Update modifiers
-        updateModifiers();
-    }
-
-    // Update ability modifiers display
-    function updateModifiers() {
-        ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'].forEach(ability => {
-            const score = currentCharacter.abilities[ability];
-            const modifier = Math.floor((score - 10) / 2);
-            const modText = modifier >= 0 ? `+${modifier}` : modifier;
-            
-            const modElement = document.getElementById(`${ability}Mod`);
-            if (modElement) {
-                modElement.textContent = modText;
-            }
-        });
-    }
-
-    // Handle quick roll buttons
-    function handleQuickRoll(event) {
-        const ability = event.target.dataset.ability;
-        if (!ability) return;
-        
-        const score = currentCharacter.abilities[ability];
-        const modifier = Math.floor((score - 10) / 2);
-        const roll = Math.floor(Math.random() * 20) + 1;
-        const total = roll + modifier;
-        
-        const abilityName = ability.charAt(0).toUpperCase() + ability.slice(1).substring(0, 3).toUpperCase();
-        const message = `🎲 ${abilityName} ${modifier >= 0 ? '+' : ''}${modifier}: ${roll} + ${modifier} = ${total}`;
-        
-        if (window.ChatModule) {
-            window.ChatModule.addRollMessage(message);
+        // Update character details
+        if (document.getElementById('characterName')) {
+            document.getElementById('characterName').value = characterData.name || '';
         }
+        if (document.getElementById('characterRace')) {
+            document.getElementById('characterRace').value = characterData.race || '';
+        }
+        if (document.getElementById('characterClass')) {
+            document.getElementById('characterClass').value = characterData.class || '';
+        }
+        if (document.getElementById('characterSubclass')) {
+            document.getElementById('characterSubclass').value = characterData.subclass || '';
+        }
+        if (document.getElementById('characterLevel')) {
+            document.getElementById('characterLevel').value = characterData.level || 1;
+        }
+        if (document.getElementById('characterBackground')) {
+            document.getElementById('characterBackground').value = characterData.background || '';
+        }
+        
+        // Update combat stats
+        if (document.getElementById('characterHP')) {
+            document.getElementById('characterHP').value = characterData.hp || 10;
+        }
+        if (document.getElementById('characterMaxHP')) {
+            document.getElementById('characterMaxHP').value = characterData.maxHp || 10;
+        }
+        if (document.getElementById('characterAC')) {
+            document.getElementById('characterAC').value = characterData.ac || 10;
+        }
+        
+        // Update ability scores
+        if (document.getElementById('strengthScore')) {
+            document.getElementById('strengthScore').value = characterData.abilities.strength || 10;
+        }
+        if (document.getElementById('dexterityScore')) {
+            document.getElementById('dexterityScore').value = characterData.abilities.dexterity || 10;
+        }
+        if (document.getElementById('constitutionScore')) {
+            document.getElementById('constitutionScore').value = characterData.abilities.constitution || 10;
+        }
+        if (document.getElementById('intelligenceScore')) {
+            document.getElementById('intelligenceScore').value = characterData.abilities.intelligence || 10;
+        }
+        if (document.getElementById('wisdomScore')) {
+            document.getElementById('wisdomScore').value = characterData.abilities.wisdom || 10;
+        }
+        if (document.getElementById('charismaScore')) {
+            document.getElementById('charismaScore').value = characterData.abilities.charisma || 10;
+        }
+        
+        // Update ability modifiers
+        updateAbilityModifiers();
+        
+        // Update skills
+        const skillCheckboxes = document.querySelectorAll('.skill-item input[type="checkbox"]');
+        skillCheckboxes.forEach(checkbox => {
+            checkbox.checked = characterData.skills.includes(checkbox.value);
+        });
     }
-
-    // Get current character
-    function getCurrentCharacter() {
-        return currentCharacter;
+    
+    /**
+     * Get current character data
+     */
+    function getCharacterData() {
+        return {...characterData};
     }
-
-    // Load character from save data
-    function loadCharacter(data) {
-        currentCharacter = { ...currentCharacter, ...data };
-        updateCharacterSheet();
-    }
-
+    
     // Public API
     return {
         init,
-        openCharacterCreator,
-        closeCharacterCreator,
-        nextStep,
-        prevStep,
-        rollSingleAbility,
-        rollAllAbilities,
-        rollHitPoints,
-        finalizeCharacter,
-        getCurrentCharacter,
+        saveCharacter,
         loadCharacter,
-        updateCharacterSheet
+        resetCharacter,
+        getCharacterData
     };
 })();
 
-// Make available globally
+// Export the module
 window.CharacterModule = CharacterModule;
