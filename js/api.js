@@ -1,11 +1,13 @@
 /**
  * Simplified API Module for D&D Solo Play
+ * Using a public CORS proxy to avoid CORS issues
  */
 
 const APIModule = (() => {
     // Configuration
     let config = {
         provider: 'claude',
+        apiKey: '', // Will be entered by user
         maxTokens: 4000,
         temperature: 0.7,
         tokenEstimate: 0,
@@ -14,33 +16,115 @@ const APIModule = (() => {
 
     // Message history
     let messageHistory = [];
-    let isConnected = true;
+    let isConnected = false;
     let lastResponse = '';
 
     /**
      * Initialize the API module
      */
     function init() {
+        // Load configuration from localStorage
+        const savedConfig = localStorage.getItem('dnd-solo-api-config');
+        if (savedConfig) {
+            config = {...config, ...JSON.parse(savedConfig)};
+        }
+        
+        // Update UI elements if they exist
+        if (document.getElementById('apiKey')) {
+            document.getElementById('apiKey').value = config.apiKey;
+        }
+        
         // Load message history from localStorage
         const savedHistory = localStorage.getItem('dnd-solo-message-history');
         if (savedHistory) {
             messageHistory = JSON.parse(savedHistory);
         }
         
-        // Update connection status display if it exists
-        const statusElement = document.getElementById('connectionStatus');
-        if (statusElement) {
-            statusElement.textContent = 'Connected (Proxy)';
-            statusElement.className = 'status-connected';
+        console.log('API Module initialized - DIRECT CLAUDE API VERSION');
+        
+        // Set up event listeners if elements exist
+        if (document.getElementById('apiKey')) {
+            document.getElementById('apiKey').addEventListener('change', saveConfig);
+        }
+        if (document.getElementById('testConnection')) {
+            document.getElementById('testConnection').addEventListener('click', testConnection);
         }
         
-        console.log('API Module initialized with Claude proxy - LATEST VERSION');
+        // Update connection status
+        updateConnectionStatus(Boolean(config.apiKey));
+    }
+
+    /**
+     * Save configuration to localStorage
+     */
+    function saveConfig() {
+        // Update config object
+        if (document.getElementById('apiKey')) {
+            config.apiKey = document.getElementById('apiKey').value;
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('dnd-solo-api-config', JSON.stringify(config));
+        
+        // Update connection status
+        updateConnectionStatus(Boolean(config.apiKey));
+    }
+
+    /**
+     * Test connection to Claude API
+     */
+    async function testConnection() {
+        updateConnectionStatus('testing');
+        
+        if (!config.apiKey) {
+            updateConnectionStatus(false, 'API key required');
+            return;
+        }
+        
+        try {
+            const response = await callClaudeAPI("Hello, testing connection.", "You are a helpful assistant.");
+            updateConnectionStatus(true);
+            return true;
+        } catch (error) {
+            console.error('Connection test failed:', error);
+            updateConnectionStatus(false, error.message);
+            return false;
+        }
+    }
+
+    /**
+     * Update connection status indicator
+     */
+    function updateConnectionStatus(status, errorMsg = '') {
+        const statusElement = document.getElementById('connectionStatus');
+        
+        if (!statusElement) return;
+        
+        if (status === 'testing') {
+            statusElement.textContent = 'Testing...';
+            statusElement.className = 'status-testing';
+            return;
+        }
+        
+        isConnected = status;
+        
+        if (status) {
+            statusElement.textContent = 'Connected';
+            statusElement.className = 'status-connected';
+        } else {
+            statusElement.textContent = errorMsg || 'Not connected';
+            statusElement.className = 'status-disconnected';
+        }
     }
 
     /**
      * Send a message to the AI
      */
     async function sendMessage(message, characterData = {}) {
+        if (!config.apiKey) {
+            return "⚠️ Please enter your Claude API key in the settings panel.";
+        }
+        
         // Add user message to history
         messageHistory.push({role: "user", content: message});
         
@@ -53,40 +137,7 @@ const APIModule = (() => {
         const systemMessage = createDMSystemMessage(characterData);
         
         try {
-            // Format messages for Claude API
-            const formattedMessages = [
-                {role: "system", content: systemMessage}
-            ];
-            
-            // Add message history
-            messageHistory.forEach(msg => {
-                formattedMessages.push({
-                    role: msg.role,
-                    content: msg.content
-                });
-            });
-            
-            // Call the Vercel proxy with newest URL
-            const claudeResponse = await fetch('https://dnd-claude-proxy-cu3qb4zrc-exturals-projects.vercel.app/api/claude', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: "claude-3-sonnet-20240229",
-                    max_tokens: config.maxTokens,
-                    temperature: config.temperature,
-                    messages: formattedMessages
-                })
-            });
-            
-            const claudeData = await claudeResponse.json();
-            
-            if (!claudeResponse.ok) {
-                throw new Error(claudeData.error?.message || 'Unknown error');
-            }
-            
-            const response = claudeData.content[0].text;
+            const response = await callClaudeAPI(message, systemMessage);
             
             // Add assistant response to history
             messageHistory.push({role: "assistant", content: response});
@@ -100,6 +151,58 @@ const APIModule = (() => {
             console.error('AI request failed:', error);
             return `⚠️ AI request failed: ${error.message}`;
         }
+    }
+
+    /**
+     * Call Claude API directly using a CORS proxy
+     */
+    async function callClaudeAPI(message, systemMessage) {
+        // Format messages for Claude API
+        const formattedMessages = [
+            {role: "system", content: systemMessage}
+        ];
+        
+        // Add message history (skip system messages)
+        messageHistory.forEach(msg => {
+            if (msg.role !== "system") {
+                formattedMessages.push({
+                    role: msg.role,
+                    content: msg.content
+                });
+            }
+        });
+        
+        // Add current message if not in history yet
+        if (!messageHistory.some(msg => msg.role === "user" && msg.content === message)) {
+            formattedMessages.push({role: "user", content: message});
+        }
+        
+        // Use a public CORS proxy to avoid CORS issues
+        const proxyUrl = "https://corsproxy.io/?";
+        const targetUrl = "https://api.anthropic.com/v1/messages";
+        
+        const claudeResponse = await fetch(proxyUrl + encodeURIComponent(targetUrl), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': config.apiKey,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: "claude-3-sonnet-20240229",
+                max_tokens: config.maxTokens,
+                temperature: config.temperature,
+                messages: formattedMessages
+            })
+        });
+        
+        const claudeData = await claudeResponse.json();
+        
+        if (!claudeResponse.ok) {
+            throw new Error(claudeData.error?.message || 'Unknown error');
+        }
+        
+        return claudeData.content[0].text;
     }
 
     /**
@@ -195,26 +298,14 @@ Let's begin!`;
         return response;
     }
 
-    // Functions that need to exist but don't do much in this simplified version
-    function testConnection() {
-        const statusElement = document.getElementById('connectionStatus');
-        if (statusElement) {
-            statusElement.textContent = 'Connected (Proxy)';
-            statusElement.className = 'status-connected';
-        }
-        isConnected = true;
-        return true;
-    }
-    
-    function updateConnectionStatus(status) {
-        isConnected = true;
-    }
-    
+    /**
+     * Get configuration
+     */
     function getConfig() {
         return {...config};
     }
 
-    // Public API - must match original
+    // Public API
     return {
         init,
         testConnection,
